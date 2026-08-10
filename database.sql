@@ -41,13 +41,13 @@ CREATE TABLE IF NOT EXISTS `notes` (
   `folder_id` INT DEFAULT NULL,
   `title` VARCHAR(255) NOT NULL,
   `content` TEXT NOT NULL,
-  `image_url` VARCHAR(255) DEFAULT NULL,
+  `image_url` TEXT DEFAULT NULL,
   `is_pinned` TINYINT(1) NOT NULL DEFAULT 0,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`folder_id`) REFERENCES `folders`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 5. Transactions Table
+-- 5. Transactions Table (With optional receipt photo)
 CREATE TABLE IF NOT EXISTS `transactions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `user_id` INT NOT NULL DEFAULT 1,
@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `title` VARCHAR(255) NOT NULL,
   `category` VARCHAR(50) NOT NULL DEFAULT 'Makanan',
   `date` DATE NOT NULL,
+  `image_url` VARCHAR(255) DEFAULT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -80,7 +81,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `savings_name` VARCHAR(100) NOT NULL DEFAULT 'Beli Laptop Pro'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Seed Initial Demo User (default password: password123)
+-- Seed Initial Demo User
 INSERT IGNORE INTO `users` (`id`, `username`, `email`, `password_hash`) VALUES
 (1, 'mahasiswa', 'mahasiswa@uniflow.app', '$2y$10$wO3l.jWp/02uO8qF9gJd1eXzH91Y4GZtJjV59oZ4H4L4k7zG8gH1S');
 

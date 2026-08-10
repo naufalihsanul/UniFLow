@@ -43,6 +43,9 @@ if ($method === 'GET') {
         $stmtTx = $pdo->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC, id DESC");
         $stmtTx->execute([$userId]);
         $transactions = $stmtTx->fetchAll();
+        foreach ($transactions as &$tx) {
+            $tx['imageUrl'] = $tx['image_url'];
+        }
 
         // 5. Habits
         $stmtHabits = $pdo->prepare("SELECT * FROM habits WHERE user_id = ? ORDER BY id ASC");

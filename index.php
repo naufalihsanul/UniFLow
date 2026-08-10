@@ -251,7 +251,6 @@
         <input type="hidden" id="note-id" value="" />
         <input type="hidden" id="note-target-folder-id" value="" />
 
-        <!-- Target Folder Indicator (Auto assigned if inside folder, else dropdown) -->
         <div id="folder-assignment-container">
           <!-- Populated via JS -->
         </div>
@@ -265,7 +264,6 @@
           <textarea id="note-content" rows="4" required placeholder="Tuliskan materi, poin penting, atau rangkuman..." class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue resize-none"></textarea>
         </div>
         
-        <!-- Multi-Image Upload Field -->
         <div>
           <div class="flex justify-between items-center mb-1">
             <label class="block text-xs font-semibold text-slate-500">Lampirkan Foto / Gambar (Multi-Gambar Support)</label>
@@ -273,7 +271,6 @@
           </div>
           <input type="file" id="note-image-file" multiple accept="image/*" onchange="previewSelectedImages(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
           
-          <!-- Interactive Preview Grid with Delete Cross (x) Buttons -->
           <div id="image-preview-grid" class="mt-3 grid grid-cols-3 gap-2 hidden">
             <!-- Rendered dynamically in JS -->
           </div>
@@ -290,16 +287,16 @@
     </div>
   </div>
 
-  <!-- 4. Add Transaction Modal -->
+  <!-- 4. Add Transaction Modal (With Optional Receipt Photo Attachment!) -->
   <div id="modal-add-transaction" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-4">
+    <div class="bg-white w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
         <h3 class="text-lg font-bold text-slate-900" id="tx-modal-title">Tambah Transaksi</h3>
         <button onclick="closeModal('modal-add-transaction')" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-6 h-6"></i>
         </button>
       </div>
-      <form id="form-transaction" onsubmit="handleSaveTransaction(event)" class="space-y-3">
+      <form id="form-transaction" onsubmit="handleSaveTransaction(event)" enctype="multipart/form-data" class="space-y-3">
         <input type="hidden" id="tx-type" value="expense" />
         <div>
           <label class="block text-xs font-semibold text-slate-500 mb-1">Jumlah (Rp)</label>
@@ -320,6 +317,20 @@
             <option value="Lainnya">Lainnya</option>
           </select>
         </div>
+
+        <!-- Optional Receipt / Transaction Photo Upload -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Lampirkan Bukti / Foto Nota (Opsional)</label>
+          <input type="file" id="tx-image-file" accept="image/*" onchange="previewTransactionImage(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200" />
+          
+          <div id="tx-image-preview-container" class="mt-2 relative hidden">
+            <img id="tx-image-preview-element" src="" class="h-28 w-full object-cover rounded-xl border border-slate-200" />
+            <button type="button" onclick="removeTransactionImage()" class="absolute top-2 right-2 w-6 h-6 rounded-full bg-apple-red text-white flex items-center justify-center shadow-md press-effect" title="Hapus Foto Nota">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
         <button type="submit" id="tx-submit-btn" class="w-full py-3 bg-apple-red text-white rounded-xl font-semibold text-sm shadow-md press-effect mt-2">Catat Transaksi</button>
       </form>
     </div>
@@ -404,7 +415,7 @@
       </div>
       <div>
         <h3 id="confirm-delete-title" class="text-base font-bold text-slate-900">Konfirmasi Hapus</h3>
-        <p id="confirm-delete-message" class="text-xs text-slate-500 mt-1 leading-relaxed">Apakah Anda yakin ingin menghapus item ini? Data yang terhapus tidak dapat dikembalikan.</p>
+        <p id="confirm-delete-message" class="text-xs text-slate-500 mt-1 leading-relaxed">Apakah Anda yakin ingin menghapus item ini? Data dan berkas gambar yang terhapus tidak dapat dikembalikan.</p>
       </div>
       <div class="grid grid-cols-2 gap-3 pt-2">
         <button onclick="closeModal('modal-confirm-delete')" class="py-2.5 bg-slate-100 text-slate-700 rounded-xl font-semibold text-xs press-effect">Batal</button>
@@ -423,7 +434,7 @@
     </div>
   </div>
 
-  <!-- JavaScript Core Engine with Multi-Image Slideshow Carousel & Clean File Removal -->
+  <!-- JavaScript Core Engine -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -431,7 +442,6 @@
       });
     }
 
-    // Application State
     let appState = {
       activeTab: 'dashboard',
       tasks: [],
@@ -453,15 +463,12 @@
 
     let pendingDeleteAction = null;
 
-    // Active image states for note creation/editing modal
-    let activeRetainedImages = []; // Array of existing URLs kept
-    let activeNewImageFiles = [];   // Array of File objects added
-    let activeRemovedImages = [];  // Array of URLs to be deleted from server
+    let activeRetainedImages = [];
+    let activeNewImageFiles = [];
+    let activeRemovedImages = [];
 
-    // Carousel Intervals Registry
     let noteCarouselIntervals = {};
 
-    // --- Fetch State from PHP MySQL Database ---
     async function fetchAppState() {
       const syncIcon = document.getElementById('sync-icon');
       const syncText = document.getElementById('sync-text');
@@ -493,7 +500,6 @@
 
     setInterval(fetchAppState, 15000);
 
-    // --- Helper Utilities ---
     function formatRupiah(amount) {
       return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
     }
@@ -515,7 +521,6 @@
     }
     setInterval(updateClock, 1000);
 
-    // Clear active note slideshow timers when switching tabs
     function clearAllCarouselTimers() {
       Object.keys(noteCarouselIntervals).forEach(id => {
         clearInterval(noteCarouselIntervals[id]);
@@ -523,7 +528,6 @@
       noteCarouselIntervals = {};
     }
 
-    // --- Tab Switcher Logic ---
     function switchTab(tabName) {
       clearAllCarouselTimers();
       appState.activeTab = tabName;
@@ -615,7 +619,6 @@
 
           ${alertBannerHTML}
 
-          <!-- Next Schedule Card -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-[10px] font-bold uppercase tracking-wider text-apple-blue bg-blue-50 px-2.5 py-1 rounded-full">Agenda Berikutnya</span>
@@ -632,7 +635,6 @@
             `}
           </div>
 
-          <!-- Budget Summary Card -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div>
@@ -648,7 +650,6 @@
             </div>
           </div>
 
-          <!-- Quick Actions Grid -->
           <div class="grid grid-cols-3 gap-2">
             <button onclick="switchTab('planner')" class="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-1.5 press-effect">
               <div class="w-9 h-9 rounded-xl bg-blue-50 text-apple-blue flex items-center justify-center">
@@ -670,7 +671,6 @@
             </button>
           </div>
 
-          <!-- Today's Tasks Preview -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Tugas & Agenda Mendatang</h3>
@@ -694,7 +694,6 @@
             </div>
           </div>
 
-          <!-- Habits Quick Tracker -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Kebiasaan Hari Ini</h3>
@@ -870,7 +869,7 @@
       switchTab('planner');
     }
 
-    // --- 3. NOTES VIEW (WITH AUTOMATIC MULTI-IMAGE CAROUSEL SLIDESHOW) ---
+    // --- 3. NOTES VIEW ---
     function renderNotes(container) {
       const currentFolder = appState.folders.find(f => Number(f.id) === Number(appState.currentFolderId));
       
@@ -957,7 +956,6 @@
                   
                   <p class="text-xs text-slate-600 line-clamp-3 whitespace-pre-line leading-relaxed">${note.content}</p>
                   
-                  <!-- Multi-Image Carousel Slideshow -->
                   ${images.length > 0 ? `
                     <div class="pt-1 relative rounded-xl overflow-hidden group">
                       <div id="note-carousel-img-container-${note.id}" class="h-40 w-full bg-slate-900">
@@ -965,7 +963,6 @@
                       </div>
                       
                       ${images.length > 1 ? `
-                        <!-- Carousel Badge & Control Dots -->
                         <div class="absolute bottom-2 inset-x-0 flex justify-center items-center space-x-1.5 z-10 pointer-events-none">
                           ${images.map((_, idx) => `
                             <span id="carousel-dot-${note.id}-${idx}" class="w-2 h-2 rounded-full ${idx === 0 ? 'bg-white scale-125' : 'bg-white/50'} transition-all duration-300"></span>
@@ -992,7 +989,6 @@
         </div>
       `;
 
-      // Start automatic carousel timers for notes with > 1 image
       currentNotes.forEach(note => {
         const images = note.imageUrls && note.imageUrls.length > 0 ? note.imageUrls : (note.imageUrl ? [note.imageUrl] : []);
         if (images.length > 1) {
@@ -1001,7 +997,6 @@
       });
     }
 
-    // Auto Slideshow Timer Function
     function startNoteCarousel(noteId, images) {
       if (noteCarouselIntervals[noteId]) clearInterval(noteCarouselIntervals[noteId]);
       
@@ -1020,7 +1015,6 @@
         if (numEl) {
           numEl.textContent = currentIndex + 1;
         }
-        // Update dots
         images.forEach((_, idx) => {
           const dot = document.getElementById(`carousel-dot-${noteId}-${idx}`);
           if (dot) {
@@ -1031,10 +1025,10 @@
             }
           }
         });
-      }, 3000); // Cycle every 3 seconds
+      }, 3000);
     }
 
-    // --- 4. MONEY VIEW ---
+    // --- 4. MONEY VIEW (WITH TRANSACTION RECEIPT PHOTO PREVIEW) ---
     function renderMoney(container) {
       const todayStr = getTodayString();
       const totalIncome = appState.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
@@ -1096,6 +1090,7 @@
             </div>
           </div>
 
+          <!-- Transactions List with Receipt Thumbnail Preview -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Riwayat Transaksi</h3>
@@ -1103,24 +1098,34 @@
             </div>
 
             ${appState.transactions.length > 0 ? appState.transactions.map(tx => `
-              <div class="p-3.5 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                  <div class="w-9 h-9 rounded-xl ${tx.type === 'income' ? 'bg-emerald-50 text-apple-green' : 'bg-red-50 text-apple-red'} flex items-center justify-center">
-                    <i data-lucide="${tx.type === 'income' ? 'arrow-up-right' : 'arrow-down-left'}" class="w-5 h-5"></i>
+              <div class="p-3.5 rounded-2xl bg-white shadow-sm border border-slate-100 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl ${tx.type === 'income' ? 'bg-emerald-50 text-apple-green' : 'bg-red-50 text-apple-red'} flex items-center justify-center">
+                      <i data-lucide="${tx.type === 'income' ? 'arrow-up-right' : 'arrow-down-left'}" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-800">${tx.title}</h4>
+                      <p class="text-[10px] text-slate-400">${tx.category} • ${tx.date}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 class="text-xs font-bold text-slate-800">${tx.title}</h4>
-                    <p class="text-[10px] text-slate-400">${tx.category} • ${tx.date}</p>
+                  <div class="text-right flex items-center space-x-2">
+                    <span class="text-xs font-bold ${tx.type === 'income' ? 'text-apple-green' : 'text-slate-800'}">
+                      ${tx.type === 'income' ? '+' : '-'}${formatRupiah(tx.amount)}
+                    </span>
+                    <button onclick="requestDeleteTransaction(${tx.id}, '${tx.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
                   </div>
                 </div>
-                <div class="text-right flex items-center space-x-2">
-                  <span class="text-xs font-bold ${tx.type === 'income' ? 'text-apple-green' : 'text-slate-800'}">
-                    ${tx.type === 'income' ? '+' : '-'}${formatRupiah(tx.amount)}
-                  </span>
-                  <button onclick="requestDeleteTransaction(${tx.id}, '${tx.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
-                </div>
+
+                <!-- Receipt Image Thumbnail Attachment -->
+                ${tx.imageUrl ? `
+                  <div class="pt-1 flex items-center space-x-2">
+                    <img src="${tx.imageUrl}" onclick="viewFullImage('${tx.imageUrl}')" class="h-16 w-16 object-cover rounded-xl border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" />
+                    <span class="text-[10px] text-slate-400 italic">Lihat Foto Nota (Klik untuk perbesar)</span>
+                  </div>
+                ` : ''}
               </div>
             `).join('') : '<p class="text-xs text-slate-400 italic text-center py-6">Belum ada transaksi.</p>'}
           </div>
@@ -1246,7 +1251,6 @@
       openModal('modal-add-task');
     }
 
-    // --- NOTE MODAL SETUP & MULTI-IMAGE PREVIEW GRID WITH REMOVE ('x') BUTTONS ---
     function openNoteModal() {
       document.getElementById('form-note').reset();
       document.getElementById('note-id').value = '';
@@ -1281,7 +1285,6 @@
       openModal('modal-add-note');
     }
 
-    // Auto folder assignment UI helper
     function setupFolderAssignmentUI(targetFolderId) {
       const container = document.getElementById('folder-assignment-container');
       const activeId = targetFolderId !== null ? targetFolderId : appState.currentFolderId;
@@ -1290,7 +1293,6 @@
       document.getElementById('note-target-folder-id').value = activeId || '';
 
       if (activeId && currentFolder) {
-        // Auto assigned inside active folder (no dropdown required)
         container.innerHTML = `
           <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200/60 flex items-center justify-between">
             <div class="flex items-center space-x-2">
@@ -1301,7 +1303,6 @@
           </div>
         `;
       } else {
-        // At root level: render folder selection dropdown
         container.innerHTML = `
           <label class="block text-xs font-semibold text-slate-500 mb-1">Folder Tujuan</label>
           <select id="note-folder-select" onchange="document.getElementById('note-target-folder-id').value=this.value" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none">
@@ -1315,7 +1316,6 @@
       if (window.lucide) lucide.createIcons();
     }
 
-    // Triggered when user selects new images via file picker
     function previewSelectedImages(event) {
       const files = Array.from(event.target.files);
       if (files.length > 0) {
@@ -1324,7 +1324,6 @@
       renderImagePreviewGrid();
     }
 
-    // Render interactive preview grid with red 'x' remove buttons
     function renderImagePreviewGrid() {
       const grid = document.getElementById('image-preview-grid');
       const totalImages = activeRetainedImages.length + activeNewImageFiles.length;
@@ -1338,7 +1337,6 @@
       grid.classList.remove('hidden');
       grid.innerHTML = '';
 
-      // 1. Render retained existing images
       activeRetainedImages.forEach((url, idx) => {
         const item = document.createElement('div');
         item.className = 'relative h-24 rounded-xl overflow-hidden border border-slate-200 shadow-sm group';
@@ -1351,7 +1349,6 @@
         grid.appendChild(item);
       });
 
-      // 2. Render new selected file previews
       activeNewImageFiles.forEach((file, idx) => {
         const item = document.createElement('div');
         item.className = 'relative h-24 rounded-xl overflow-hidden border border-slate-200 shadow-sm group';
@@ -1373,7 +1370,6 @@
       if (window.lucide) lucide.createIcons();
     }
 
-    // Remove existing image from server
     function removeRetainedImage(index) {
       const removedUrl = activeRetainedImages[index];
       if (removedUrl) {
@@ -1383,20 +1379,18 @@
       renderImagePreviewGrid();
     }
 
-    // Remove new un-uploaded file preview
     function removeNewImageFile(index) {
       activeNewImageFiles.splice(index, 1);
       renderImagePreviewGrid();
     }
 
-    function viewFullImage(url) {
-      document.getElementById('full-image-element').src = url;
-      openModal('modal-image-viewer');
-    }
-
+    // --- TRANSACTION RECEIPT PHOTO PREVIEW HANDLER ---
     function openTransactionModal(type) {
       document.getElementById('form-transaction').reset();
       document.getElementById('tx-type').value = type;
+      document.getElementById('tx-image-preview-container').classList.add('hidden');
+      document.getElementById('tx-image-preview-element').src = '';
+      
       const titleEl = document.getElementById('tx-modal-title');
       const btnEl = document.getElementById('tx-submit-btn');
 
@@ -1410,6 +1404,34 @@
         btnEl.className = 'w-full py-3 bg-apple-red text-white rounded-xl font-semibold text-sm shadow-md press-effect mt-2';
       }
       openModal('modal-add-transaction');
+    }
+
+    function previewTransactionImage(event) {
+      const file = event.target.files[0];
+      const previewContainer = document.getElementById('tx-image-preview-container');
+      const previewImg = document.getElementById('tx-image-preview-element');
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewImg.src = e.target.result;
+          previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewContainer.classList.add('hidden');
+      }
+    }
+
+    function removeTransactionImage() {
+      document.getElementById('tx-image-file').value = '';
+      document.getElementById('tx-image-preview-container').classList.add('hidden');
+      document.getElementById('tx-image-preview-element').src = '';
+    }
+
+    function viewFullImage(url) {
+      document.getElementById('full-image-element').src = url;
+      openModal('modal-image-viewer');
     }
 
     function openFolderModal() {
@@ -1528,17 +1550,14 @@
       formData.append('content', content);
       formData.append('is_pinned', isPinned ? '1' : '0');
 
-      // Append retained images
       if (activeRetainedImages.length > 0) {
         formData.append('retained_image_urls', JSON.stringify(activeRetainedImages));
       }
 
-      // Append removed images for server file cleanup
       if (activeRemovedImages.length > 0) {
         formData.append('removed_image_urls', JSON.stringify(activeRemovedImages));
       }
 
-      // Append new image files
       activeNewImageFiles.forEach((file) => {
         formData.append('images[]', file);
       });
@@ -1577,6 +1596,39 @@
         await fetchAppState();
       } catch (err) {
         console.error('Error toggle pin note', err);
+      }
+    }
+
+    async function handleSaveTransaction(e) {
+      e.preventDefault();
+      const type = document.getElementById('tx-type').value;
+      const amount = document.getElementById('tx-amount').value;
+      const title = document.getElementById('tx-title').value;
+      const category = document.getElementById('tx-category').value;
+      const imageFile = document.getElementById('tx-image-file').files[0];
+
+      const formData = new FormData();
+      formData.append('type', type);
+      formData.append('amount', amount);
+      formData.append('title', title);
+      formData.append('category', category);
+      formData.append('date', getTodayString());
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      try {
+        const response = await fetch('./api/transactions.php', {
+          method: 'POST',
+          body: formData
+        });
+        const res = await response.json();
+        if (res.success) {
+          closeModal('modal-add-transaction');
+          await fetchAppState();
+        }
+      } catch (err) {
+        alert('Gagal mencatat transaksi: ' + err.message);
       }
     }
 
@@ -1651,29 +1703,6 @@
         }
       } catch (err) {
         alert('Gagal menambahkan kebiasaan: ' + err.message);
-      }
-    }
-
-    async function handleSaveTransaction(e) {
-      e.preventDefault();
-      const type = document.getElementById('tx-type').value;
-      const amount = document.getElementById('tx-amount').value;
-      const title = document.getElementById('tx-title').value;
-      const category = document.getElementById('tx-category').value;
-
-      try {
-        const response = await fetch('./api/transactions.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type, amount, title, category, date: getTodayString() })
-        });
-        const res = await response.json();
-        if (res.success) {
-          closeModal('modal-add-transaction');
-          await fetchAppState();
-        }
-      } catch (err) {
-        alert('Gagal mencatat transaksi: ' + err.message);
       }
     }
 
