@@ -850,12 +850,7 @@
                     </button>
                     <span class="text-xs font-semibold text-slate-800">${habit.title}</span>
                   </div>
-                  <div class="flex items-center space-x-2">
-                    <span class="text-[10px] text-slate-400 font-medium">🔥 ${habit.streak} hari</span>
-                    <button onclick="requestDeleteHabit(${habit.id}, '${habit.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect p-1" title="Hapus Kebiasaan">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                  </div>
+                  <span class="text-[10px] text-slate-400 font-medium">🔥 ${habit.streak} hari</span>
                 </div>
               `).join('')}
             </div>
@@ -1731,57 +1726,58 @@
       openModal('modal-confirm-delete');
     }
 
-    async function executePendingDelete() {
-      if (pendingDeleteAction) {
-        await pendingDeleteAction();
-        pendingDeleteAction = null;
-      }
+    function executePendingDelete() {
       closeModal('modal-confirm-delete');
+      if (pendingDeleteAction) {
+        const action = pendingDeleteAction;
+        pendingDeleteAction = null;
+        action();
+      }
     }
 
     function requestDeleteFolder(id, name) {
-      openConfirmDeleteModal('Folder', name, async () => {
+      openConfirmDeleteModal('Folder', name, () => {
         appState.folders = appState.folders.filter(f => Number(f.id) !== Number(id));
         appState.notes = appState.notes.filter(n => Number(n.folderId) !== Number(id));
         switchTab(appState.activeTab);
 
-        await fetch(`./api/folders.php?id=${id}`, { method: 'DELETE' });
+        fetch(`./api/folders.php?id=${id}`, { method: 'DELETE' }).catch(err => console.error(err));
       });
     }
 
     function requestDeleteTask(id, title) {
-      openConfirmDeleteModal('Tugas', title, async () => {
+      openConfirmDeleteModal('Tugas', title, () => {
         appState.tasks = appState.tasks.filter(t => Number(t.id) !== Number(id));
         switchTab(appState.activeTab);
 
-        await fetch(`./api/tasks.php?id=${id}`, { method: 'DELETE' });
+        fetch(`./api/tasks.php?id=${id}`, { method: 'DELETE' }).catch(err => console.error(err));
       });
     }
 
     function requestDeleteNote(id, title) {
-      openConfirmDeleteModal('Catatan', title, async () => {
+      openConfirmDeleteModal('Catatan', title, () => {
         appState.notes = appState.notes.filter(n => Number(n.id) !== Number(id));
         switchTab(appState.activeTab);
 
-        await fetch(`./api/notes.php?id=${id}`, { method: 'DELETE' });
+        fetch(`./api/notes.php?id=${id}`, { method: 'DELETE' }).catch(err => console.error(err));
       });
     }
 
     function requestDeleteTransaction(id, title) {
-      openConfirmDeleteModal('Transaksi', title, async () => {
+      openConfirmDeleteModal('Transaksi', title, () => {
         appState.transactions = appState.transactions.filter(t => Number(t.id) !== Number(id));
         switchTab(appState.activeTab);
 
-        await fetch(`./api/transactions.php?id=${id}`, { method: 'DELETE' });
+        fetch(`./api/transactions.php?id=${id}`, { method: 'DELETE' }).catch(err => console.error(err));
       });
     }
 
     function requestDeleteHabit(id, title) {
-      openConfirmDeleteModal('Kebiasaan', title, async () => {
+      openConfirmDeleteModal('Kebiasaan', title, () => {
         appState.habits = appState.habits.filter(h => Number(h.id) !== Number(id));
         switchTab(appState.activeTab);
 
-        await fetch(`./api/habits.php?id=${id}`, { method: 'DELETE' });
+        fetch(`./api/habits.php?id=${id}`, { method: 'DELETE' }).catch(err => console.error(err));
       });
     }
 
