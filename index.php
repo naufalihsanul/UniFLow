@@ -217,9 +217,9 @@
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">Prioritas</label>
             <select id="task-priority" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue">
-              <option value="Tinggi">Tinggi 🔥 (Merah)</option>
-              <option value="Sedang" selected>Sedang ⚡ (Oranye)</option>
-              <option value="Rendah">Rendah ☕ (Abu-Abu)</option>
+              <option value="Tinggi">Tinggi</option>
+              <option value="Sedang" selected>Sedang</option>
+              <option value="Rendah">Rendah</option>
             </select>
           </div>
         </div>
@@ -508,16 +508,6 @@
       };
     }
 
-    function getPriorityBadgeHTML(priority) {
-      if (priority === 'Tinggi') {
-        return `<span class="inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-bold whitespace-nowrap bg-red-50 text-apple-red border border-red-200 shadow-2xs">🔥 High</span>`;
-      } else if (priority === 'Sedang') {
-        return `<span class="inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-semibold whitespace-nowrap bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">⚡ Med</span>`;
-      } else {
-        return `<span class="inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-medium whitespace-nowrap bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs">☕ Low</span>`;
-      }
-    }
-
     // AUTOMATIC SAVINGS & SURPLUS CALCULATOR (REAL-TIME AUTOMATION!)
     function calculateSavingsStats() {
       const totalIncome = appState.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
@@ -707,7 +697,7 @@
               <h3 class="text-base font-bold text-slate-800">${nextSchedule.title}</h3>
               <div class="flex items-center space-x-2 text-xs text-slate-500">
                 <span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] ${getCategoryColor(nextSchedule.category).badge}">${nextSchedule.category}</span>
-                ${getPriorityBadgeHTML(nextSchedule.priority)}
+                <span class="text-[11px] text-slate-500">Prioritas: <b>${nextSchedule.priority || 'Sedang'}</b></span>
               </div>
             ` : `
               <p class="text-xs text-slate-400 italic py-2">Tidak ada agenda mendesak hari ini. Bebas!</p>
@@ -807,7 +797,7 @@
             </button>
           </div>
 
-          <!-- 7. Today's Tasks Preview -->
+          <!-- 7. Today's Tasks Preview (Clean Text Priority under Date & Time) -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Tugas & Agenda Mendatang</h3>
@@ -822,19 +812,18 @@
                     </button>
                     <div>
                       <p class="text-xs font-semibold text-slate-800 ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</p>
-                      <p class="text-[10px] text-slate-400 mt-0.5">${task.time}</p>
+                      <p class="text-[10px] text-slate-400 mt-0.5">${task.time} • Prioritas: ${task.priority || 'Sedang'}</p>
                     </div>
                   </div>
                   <div class="flex items-center space-x-1.5 flex-shrink-0">
                     <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold ${getCategoryColor(task.category).badge}">${task.category}</span>
-                    ${getPriorityBadgeHTML(task.priority)}
                   </div>
                 </div>
               `).join('') : '<p class="text-xs text-slate-400 italic text-center py-2">Semua tugas selesai! 🎉</p>'}
             </div>
           </div>
 
-          <!-- 8. Habits Quick Tracker -->
+          <!-- 8. Habits Quick Tracker (WITH DELETE HABIT BUTTON!) -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Kebiasaan Hari Ini</h3>
@@ -849,7 +838,12 @@
                     </button>
                     <span class="text-xs font-semibold text-slate-800">${habit.title}</span>
                   </div>
-                  <span class="text-[10px] text-slate-400 font-medium">🔥 ${habit.streak} hari</span>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-[10px] text-slate-400 font-medium">🔥 ${habit.streak} hari</span>
+                    <button onclick="requestDeleteHabit(${habit.id}, '${habit.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect p-1" title="Hapus Kebiasaan">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -859,7 +853,7 @@
       `;
     }
 
-    // --- 2. PLANNER VIEW ---
+    // --- 2. PLANNER VIEW (CLEAN TEXT PRIORITY BELOW DATE & TIME!) ---
     function renderPlanner(container) {
       const now = new Date();
       const targetDate = new Date(now.getFullYear(), now.getMonth() + appState.plannerMonthOffset, 1);
@@ -1050,7 +1044,7 @@
             <span>Tambah Jadwal / Tugas Baru</span>
           </button>
 
-          <!-- PLANNER TASK LIST -->
+          <!-- PLANNER TASK LIST (CLEAN PRIORITY TEXT IN SUBTITLE BELOW DATE & TIME!) -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Agenda (${filteredTasks.length})</h3>
@@ -1064,13 +1058,13 @@
                   </button>
                   <div class="min-w-0 flex-1">
                     <h4 class="text-xs font-bold text-slate-800 truncate ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
-                    <p class="text-[10px] text-slate-400 mt-0.5">${task.date} @ ${task.time}</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">${task.date} @ ${task.time} • Prioritas: <span class="font-medium text-slate-600">${task.priority || 'Sedang'}</span></p>
                   </div>
                 </div>
                 
+                <!-- Category Badge Only on Right Side -->
                 <div class="flex items-center space-x-1.5 flex-shrink-0">
                   <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap ${getCategoryColor(task.category).badge}">${task.category}</span>
-                  ${getPriorityBadgeHTML(task.priority)}
                   <div class="flex items-center space-x-1 pl-1">
                     <button onclick="editTask(${task.id})" class="text-slate-400 hover:text-apple-blue press-effect p-1" title="Edit Agenda">
                       <i data-lucide="edit-3" class="w-4 h-4"></i>
@@ -1271,7 +1265,7 @@
       }, 3000);
     }
 
-    // --- 4. MONEY VIEW (WITH REAL-TIME AUTOMATIC SAVINGS SURPLUS COMPUTATION!) ---
+    // --- 4. MONEY VIEW ---
     function renderMoney(container) {
       const todayStr = getTodayString();
       const savingsStats = calculateSavingsStats();
@@ -1393,7 +1387,7 @@
       `;
     }
 
-    // --- 5. PROGRESS VIEW ---
+    // --- 5. PROGRESS VIEW (WITH DELETE HABIT BUTTON!) ---
     function renderProgress(container) {
       const completedTasks = appState.tasks.filter(t => t.completed).length;
       const totalTasks = appState.tasks.length;
@@ -1449,9 +1443,14 @@
             <div class="space-y-3">
               ${appState.habits.map(habit => `
                 <div class="space-y-1">
-                  <div class="flex justify-between text-xs">
+                  <div class="flex justify-between text-xs items-center">
                     <span class="font-semibold text-slate-700">${habit.title}</span>
-                    <span class="text-slate-400 text-[10px]">🔥 ${habit.streak} Hari Streak</span>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-slate-400 text-[10px]">🔥 ${habit.streak} Hari Streak</span>
+                      <button onclick="requestDeleteHabit(${habit.id}, '${habit.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect p-1" title="Hapus Kebiasaan">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                     <div class="h-full bg-apple-green" style="width: ${Math.min(habit.streak * 15, 100)}%"></div>
@@ -1762,6 +1761,15 @@
         switchTab(appState.activeTab);
 
         await fetch(`./api/transactions.php?id=${id}`, { method: 'DELETE' });
+      });
+    }
+
+    function requestDeleteHabit(id, title) {
+      openConfirmDeleteModal('Kebiasaan', title, async () => {
+        appState.habits = appState.habits.filter(h => Number(h.id) !== Number(id));
+        switchTab(appState.activeTab);
+
+        await fetch(`./api/habits.php?id=${id}`, { method: 'DELETE' });
       });
     }
 
