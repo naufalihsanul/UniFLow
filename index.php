@@ -372,7 +372,7 @@
 
         <div class="pt-2 border-t border-slate-100">
           <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Target Impian</label>
-          <input type="text" id="savings-name" required placeholder="Contoh: Beli HP Xiaomi 13T / Laptop Pro" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
+          <input type="text" id="savings-name" required placeholder="Contoh: 40 Jt pertama / Beli Laptop Pro" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -382,7 +382,7 @@
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">Tabungan Awal (Rp)</label>
-            <input type="number" id="savings-current" required placeholder="2150000" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
+            <input type="number" id="savings-current" required placeholder="0" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
           </div>
         </div>
 
@@ -461,10 +461,10 @@
       plannerMonthOffset: 0,
       plannerCategoryFilter: 'Semua',
       settings: {
-        dailyBudget: 100000,
+        dailyBudget: 50000,
         savingsTarget: 5000000,
-        savingsCurrent: 2150000,
-        savingsName: 'Beli HP Xiaomi 13T'
+        savingsCurrent: 0,
+        savingsName: 'Target Tabungan'
       }
     };
 
@@ -514,9 +514,10 @@
       const totalExpense = appState.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
       
       const netSurplus = Math.max(0, totalIncome - totalExpense);
-      const effectiveCurrent = appState.settings.savingsCurrent + netSurplus;
-      const target = appState.settings.savingsTarget || 5000000;
-      const percent = Math.min(100, Math.round((effectiveCurrent / target) * 100));
+      const baseSavings = (appState.settings.savingsCurrent !== undefined && appState.settings.savingsCurrent !== null) ? Number(appState.settings.savingsCurrent) : 0;
+      const effectiveCurrent = baseSavings + netSurplus;
+      const target = appState.settings.savingsTarget ? Number(appState.settings.savingsTarget) : 5000000;
+      const percent = target > 0 ? Math.min(100, Math.round((effectiveCurrent / target) * 100)) : 0;
       const remaining = Math.max(0, target - effectiveCurrent);
 
       return {
@@ -641,7 +642,7 @@
         .filter(t => t.date === todayStr && t.type === 'expense')
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
-      const budgetLimit = appState.settings.dailyBudget || 50000;
+      const budgetLimit = appState.settings.dailyBudget !== undefined ? appState.settings.dailyBudget : 50000;
       const budgetPercent = Math.min(Math.round((todayExpenses / budgetLimit) * 100), 100);
 
       const savingsStats = calculateSavingsStats();
@@ -725,7 +726,7 @@
             <div class="flex justify-between items-center">
               <div>
                 <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Target Impian (Otomatis)</span>
-                <h4 class="text-xs font-bold text-slate-900 mt-1">${appState.settings.savingsName}</h4>
+                <h4 class="text-xs font-bold text-slate-900 mt-1">${appState.settings.savingsName || 'Target Tabungan'}</h4>
               </div>
               <span class="text-xs font-extrabold text-emerald-600">${savingsStats.percent}%</span>
             </div>
@@ -797,7 +798,7 @@
             </button>
           </div>
 
-          <!-- 7. Today's Tasks Preview (Clean Text Priority under Date & Time) -->
+          <!-- 7. Today's Tasks Preview -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Tugas & Agenda Mendatang</h3>
@@ -853,7 +854,7 @@
       `;
     }
 
-    // --- 2. PLANNER VIEW (CLEAN TEXT PRIORITY BELOW DATE & TIME!) ---
+    // --- 2. PLANNER VIEW ---
     function renderPlanner(container) {
       const now = new Date();
       const targetDate = new Date(now.getFullYear(), now.getMonth() + appState.plannerMonthOffset, 1);
@@ -1044,7 +1045,7 @@
             <span>Tambah Jadwal / Tugas Baru</span>
           </button>
 
-          <!-- PLANNER TASK LIST (CLEAN PRIORITY TEXT IN SUBTITLE BELOW DATE & TIME!) -->
+          <!-- PLANNER TASK LIST -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Agenda (${filteredTasks.length})</h3>
@@ -1062,7 +1063,6 @@
                   </div>
                 </div>
                 
-                <!-- Category Badge Only on Right Side -->
                 <div class="flex items-center space-x-1.5 flex-shrink-0">
                   <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap ${getCategoryColor(task.category).badge}">${task.category}</span>
                   <div class="flex items-center space-x-1 pl-1">
@@ -1307,12 +1307,12 @@
             </button>
           </div>
 
-          <!-- TARGET TABUNGAN WIDGET (AUTOMATIC REAL-TIME CALCULATED PROGRESS!) -->
+          <!-- TARGET TABUNGAN WIDGET -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div>
                 <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Target Impian</span>
-                <h4 class="text-xs font-bold text-slate-800 mt-1">${appState.settings.savingsName}</h4>
+                <h4 class="text-xs font-bold text-slate-800 mt-1">${appState.settings.savingsName || 'Target Tabungan'}</h4>
               </div>
               <button onclick="openSavingsModal()" class="px-2.5 py-1 bg-blue-50 text-apple-blue font-semibold text-xs rounded-xl press-effect flex items-center space-x-1">
                 <i data-lucide="settings" class="w-3.5 h-3.5"></i>
@@ -1332,7 +1332,7 @@
             <div class="p-2.5 bg-slate-50 rounded-xl text-[10px] text-slate-500 space-y-1">
               <div class="flex justify-between">
                 <span>Tabungan Awal:</span>
-                <span class="font-semibold text-slate-700">${formatRupiah(appState.settings.savingsCurrent)}</span>
+                <span class="font-semibold text-slate-700">${formatRupiah(appState.settings.savingsCurrent !== undefined ? appState.settings.savingsCurrent : 0)}</span>
               </div>
               <div class="flex justify-between">
                 <span>Surplus Bersih Transaksi (Otomatis):</span>
@@ -1387,7 +1387,7 @@
       `;
     }
 
-    // --- 5. PROGRESS VIEW (WITH DELETE HABIT BUTTON!) ---
+    // --- 5. PROGRESS VIEW ---
     function renderProgress(container) {
       const completedTasks = appState.tasks.filter(t => t.completed).length;
       const totalTasks = appState.tasks.length;
@@ -1699,10 +1699,15 @@
 
     function openSavingsModal() {
       document.getElementById('form-savings').reset();
-      document.getElementById('settings-daily-budget').value = appState.settings.dailyBudget || 50000;
-      document.getElementById('savings-name').value = appState.settings.savingsName || 'Beli HP Xiaomi 13T';
-      document.getElementById('savings-target').value = appState.settings.savingsTarget || 5000000;
-      document.getElementById('savings-current').value = appState.settings.savingsCurrent || 2150000;
+      const db = (appState.settings.dailyBudget !== undefined && appState.settings.dailyBudget !== null) ? appState.settings.dailyBudget : 50000;
+      const sn = appState.settings.savingsName || 'Target Tabungan';
+      const st = (appState.settings.savingsTarget !== undefined && appState.settings.savingsTarget !== null) ? appState.settings.savingsTarget : 5000000;
+      const sc = (appState.settings.savingsCurrent !== undefined && appState.settings.savingsCurrent !== null) ? appState.settings.savingsCurrent : 0;
+
+      document.getElementById('settings-daily-budget').value = db;
+      document.getElementById('savings-name').value = sn;
+      document.getElementById('savings-target').value = st;
+      document.getElementById('savings-current').value = sc;
       openModal('modal-edit-savings');
     }
 
@@ -1962,6 +1967,13 @@
       const savingsTarget = document.getElementById('savings-target').value;
       const savingsCurrent = document.getElementById('savings-current').value;
 
+      appState.settings.dailyBudget = Number(dailyBudget);
+      appState.settings.savingsName = savingsName;
+      appState.settings.savingsTarget = Number(savingsTarget);
+      appState.settings.savingsCurrent = Number(savingsCurrent);
+
+      switchTab(appState.activeTab);
+
       try {
         const response = await fetch('./api/settings.php', {
           method: 'POST',
@@ -1971,7 +1983,8 @@
         const res = await response.json();
         if (res.success) {
           closeModal('modal-edit-savings');
-          await fetchAppState();
+        } else {
+          alert(res.message || 'Gagal menyimpan pengaturan');
         }
       } catch (err) {
         alert('Gagal menyimpan pengaturan keuangan: ' + err.message);

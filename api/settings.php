@@ -8,10 +8,10 @@ if ($method === 'GET') {
     $stmt = $pdo->prepare("SELECT * FROM settings WHERE user_id = ? LIMIT 1");
     $stmt->execute([$userId]);
     $settings = $stmt->fetch() ?: [
-        'daily_budget' => 100000,
+        'daily_budget' => 50000,
         'savings_target' => 5000000,
-        'savings_current' => 2150000,
-        'savings_name' => 'Beli Laptop Pro'
+        'savings_current' => 0,
+        'savings_name' => '40 Jt pertama'
     ];
 
     jsonResponse([
@@ -35,10 +35,10 @@ if ($method === 'POST' || $method === 'PUT') {
         jsonResponse(['success' => true, 'message' => 'Setoran tabungan berhasil ditambahkan!']);
     }
 
-    $dailyBudget = (float)($data['dailyBudget'] ?? ($data['daily_budget'] ?? 100000));
-    $savingsTarget = (float)($data['savingsTarget'] ?? ($data['savings_target'] ?? 5000000));
-    $savingsCurrent = (float)($data['savingsCurrent'] ?? ($data['savings_current'] ?? 2150000));
-    $savingsName = trim($data['savingsName'] ?? ($data['savings_name'] ?? 'Beli HP Xiaomi 13T'));
+    $dailyBudget = isset($data['dailyBudget']) ? (float)$data['dailyBudget'] : (isset($data['daily_budget']) ? (float)$data['daily_budget'] : 50000);
+    $savingsTarget = isset($data['savingsTarget']) ? (float)$data['savingsTarget'] : (isset($data['savings_target']) ? (float)$data['savings_target'] : 5000000);
+    $savingsCurrent = isset($data['savingsCurrent']) ? (float)$data['savingsCurrent'] : (isset($data['savings_current']) ? (float)$data['savings_current'] : 0);
+    $savingsName = trim($data['savingsName'] ?? ($data['savings_name'] ?? 'Target Tabungan'));
 
     $stmt = $pdo->prepare("INSERT INTO settings (user_id, daily_budget, savings_target, savings_current, savings_name) 
         VALUES (?, ?, ?, ?, ?) 

@@ -59,10 +59,10 @@ if ($method === 'GET') {
         $stmtSettings = $pdo->prepare("SELECT * FROM settings WHERE user_id = ? LIMIT 1");
         $stmtSettings->execute([$userId]);
         $settings = $stmtSettings->fetch() ?: [
-            'daily_budget' => 100000,
+            'daily_budget' => 50000,
             'savings_target' => 5000000,
-            'savings_current' => 2150000,
-            'savings_name' => 'Beli Laptop Pro'
+            'savings_current' => 0,
+            'savings_name' => 'Target Tabungan'
         ];
 
         jsonResponse([
