@@ -208,16 +208,16 @@
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">Kategori</label>
             <select id="task-category" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue">
-              <option value="Kuliah">Kuliah</option>
-              <option value="Rapat">Rapat</option>
-              <option value="Organisasi">Organisasi</option>
-              <option value="Pribadi">Pribadi</option>
+              <option value="Kuliah">Kuliah (Biru)</option>
+              <option value="Rapat">Rapat (Ungu)</option>
+              <option value="Organisasi">Organisasi (Hijau)</option>
+              <option value="Pribadi">Pribadi (Kuning)</option>
             </select>
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">Prioritas</label>
             <select id="task-priority" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue">
-              <option value="Tinggi">Tinggi 🔥</option>
+              <option value="Tinggi">Tinggi 🔥 (Merah)</option>
               <option value="Sedang" selected>Sedang ⚡</option>
               <option value="Rendah">Rendah ☕</option>
             </select>
@@ -450,7 +450,7 @@
       habits: [],
       currentFolderId: null,
       selectedPlannerDate: null,
-      plannerMonthOffset: 0, // Month navigation offset
+      plannerMonthOffset: 0,
       plannerCategoryFilter: 'Semua',
       settings: {
         dailyBudget: 100000,
@@ -467,6 +467,38 @@
     let activeRemovedImages = [];
 
     let noteCarouselIntervals = {};
+
+    // CATEGORY COLOR CONFIGURATION SYSTEM
+    const categoryColors = {
+      'Kuliah': {
+        dotBg: 'bg-blue-500',
+        badge: 'bg-blue-50 text-blue-600 border border-blue-100',
+        activeFilter: 'bg-blue-600 text-white shadow-sm'
+      },
+      'Rapat': {
+        dotBg: 'bg-purple-500',
+        badge: 'bg-purple-50 text-purple-600 border border-purple-100',
+        activeFilter: 'bg-purple-600 text-white shadow-sm'
+      },
+      'Organisasi': {
+        dotBg: 'bg-emerald-500',
+        badge: 'bg-emerald-50 text-emerald-600 border border-emerald-100',
+        activeFilter: 'bg-emerald-600 text-white shadow-sm'
+      },
+      'Pribadi': {
+        dotBg: 'bg-amber-500',
+        badge: 'bg-amber-50 text-amber-700 border border-amber-100',
+        activeFilter: 'bg-amber-500 text-white shadow-sm'
+      }
+    };
+
+    function getCategoryColor(cat) {
+      return categoryColors[cat] || {
+        dotBg: 'bg-slate-400',
+        badge: 'bg-slate-100 text-slate-700',
+        activeFilter: 'bg-slate-800 text-white'
+      };
+    }
 
     async function fetchAppState() {
       const syncIcon = document.getElementById('sync-icon');
@@ -614,6 +646,7 @@
 
       container.innerHTML = `
         <div class="space-y-4">
+          <!-- 1. Header Banner -->
           <div class="p-4 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg">
             <p class="text-xs font-medium opacity-80">${getFormattedDate()}</p>
             <h2 class="text-xl font-bold mt-1">Halo, Mahasiswa! 👋</h2>
@@ -622,7 +655,7 @@
 
           ${alertBannerHTML}
 
-          <!-- Next Schedule Card -->
+          <!-- 2. Next Schedule Card -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-[10px] font-bold uppercase tracking-wider text-apple-blue bg-blue-50 px-2.5 py-1 rounded-full">Agenda Berikutnya</span>
@@ -631,7 +664,7 @@
             ${nextSchedule ? `
               <h3 class="text-base font-bold text-slate-800">${nextSchedule.title}</h3>
               <div class="flex items-center space-x-2 text-xs text-slate-500">
-                <span class="px-2 py-0.5 bg-slate-100 rounded-md font-medium text-slate-600">${nextSchedule.category}</span>
+                <span class="px-2 py-0.5 rounded-md font-semibold text-xs ${getCategoryColor(nextSchedule.category).badge}">${nextSchedule.category}</span>
                 <span>• Prioritas: ${nextSchedule.priority}</span>
               </div>
             ` : `
@@ -639,7 +672,23 @@
             `}
           </div>
 
-          <!-- Catatan Terbaru Widget -->
+          <!-- 3. Pengeluaran Hari Ini (Budget Summary Card) -->
+          <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
+            <div class="flex justify-between items-center">
+              <div>
+                <p class="text-xs text-slate-400 font-medium">Pengeluaran Hari Ini</p>
+                <h3 class="text-lg font-bold text-slate-900">${formatRupiah(todayExpenses)} <span class="text-xs font-normal text-slate-400">/ ${formatRupiah(budgetLimit)}</span></h3>
+              </div>
+              <button onclick="switchTab('money')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 press-effect">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div class="h-full ${todayExpenses > budgetLimit ? 'bg-apple-red' : budgetPercent >= 85 ? 'bg-amber-500' : 'bg-apple-blue'} transition-all duration-500" style="width: ${budgetPercent}%"></div>
+            </div>
+          </div>
+
+          <!-- 4. Catatan Terbaru & Quick Ideas Widget -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div class="flex items-center space-x-2">
@@ -676,23 +725,7 @@
             </div>
           </div>
 
-          <!-- Budget Summary Card -->
-          <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="text-xs text-slate-400 font-medium">Pengeluaran Hari Ini</p>
-                <h3 class="text-lg font-bold text-slate-900">${formatRupiah(todayExpenses)} <span class="text-xs font-normal text-slate-400">/ ${formatRupiah(budgetLimit)}</span></h3>
-              </div>
-              <button onclick="switchTab('money')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 press-effect">
-                <i data-lucide="chevron-right" class="w-4 h-4"></i>
-              </button>
-            </div>
-            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-              <div class="h-full ${todayExpenses > budgetLimit ? 'bg-apple-red' : budgetPercent >= 85 ? 'bg-amber-500' : 'bg-apple-blue'} transition-all duration-500" style="width: ${budgetPercent}%"></div>
-            </div>
-          </div>
-
-          <!-- Quick Actions Grid -->
+          <!-- 5. Quick Actions Grid -->
           <div class="grid grid-cols-3 gap-2">
             <button onclick="switchTab('planner')" class="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-1.5 press-effect">
               <div class="w-9 h-9 rounded-xl bg-blue-50 text-apple-blue flex items-center justify-center">
@@ -714,7 +747,7 @@
             </button>
           </div>
 
-          <!-- Today's Tasks Preview -->
+          <!-- 6. Today's Tasks Preview -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Tugas & Agenda Mendatang</h3>
@@ -732,13 +765,13 @@
                       <p class="text-[10px] text-slate-400">${task.category} • ${task.time}</p>
                     </div>
                   </div>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full ${task.priority === 'Tinggi' ? 'bg-red-100 text-apple-red font-semibold' : 'bg-slate-200 text-slate-600'}">${task.priority}</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${getCategoryColor(task.category).badge}">${task.category}</span>
                 </div>
               `).join('') : '<p class="text-xs text-slate-400 italic text-center py-2">Semua tugas selesai! 🎉</p>'}
             </div>
           </div>
 
-          <!-- Habits Quick Tracker -->
+          <!-- 7. Habits Quick Tracker -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Kebiasaan Hari Ini</h3>
@@ -763,30 +796,23 @@
       `;
     }
 
-    // --- 2. PLANNER VIEW (WITH FULL 1-MONTH CALENDAR GRID & RED TASK INDICATORS!) ---
+    // --- 2. PLANNER VIEW (WITH CATEGORY COLOR-CODED CALENDAR GRID & LEGEND!) ---
     function renderPlanner(container) {
       const now = new Date();
-      // Calculate target year & month from month offset
       const targetDate = new Date(now.getFullYear(), now.getMonth() + appState.plannerMonthOffset, 1);
       const year = targetDate.getFullYear();
       const month = targetDate.getMonth();
 
       const monthYearLabel = targetDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-      // First day of month (0 = Sun, 1 = Mon, ..., 6 = Sat)
       const firstDayIndex = new Date(year, month, 1).getDay();
-      // Convert to Monday-first (0 = Mon, 1 = Tue, ..., 6 = Sun)
       const mondayFirstIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
-      // Total days in target month
       const totalDays = new Date(year, month + 1, 0).getDate();
-
-      // Total days in previous month (for padding)
       const prevMonthTotalDays = new Date(year, month, 0).getDate();
 
       const calendarGridCells = [];
 
-      // 1. Padding days from previous month
       for (let i = mondayFirstIndex - 1; i >= 0; i--) {
         const dayNum = prevMonthTotalDays - i;
         const prevMonthDate = new Date(year, month - 1, dayNum);
@@ -800,10 +826,8 @@
         });
       }
 
-      // 2. Days of current target month
       for (let d = 1; d <= totalDays; d++) {
         const currentMonthDate = new Date(year, month, d);
-        // Format ISO date string YYYY-MM-DD
         const yearStr = currentMonthDate.getFullYear();
         const monthStr = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
         const dayStr = String(d).padStart(2, '0');
@@ -818,7 +842,6 @@
         });
       }
 
-      // 3. Padding days for next month to complete the 7-column grid
       const remainingCells = (7 - (calendarGridCells.length % 7)) % 7;
       for (let d = 1; d <= remainingCells; d++) {
         const nextMonthDate = new Date(year, month + 1, d);
@@ -832,7 +855,6 @@
         });
       }
 
-      // Filter tasks by category & selected date
       let filteredTasks = appState.tasks;
 
       if (appState.plannerCategoryFilter !== 'Semua') {
@@ -849,7 +871,6 @@
         <div class="space-y-4">
           <!-- FULL 1-MONTH CALENDAR GRID -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
-            <!-- Month Header Navigation -->
             <div class="flex justify-between items-center mb-1">
               <span class="text-sm font-bold text-slate-900 capitalize">${monthYearLabel}</span>
               <div class="flex items-center space-x-1">
@@ -865,7 +886,6 @@
               </div>
             </div>
 
-            <!-- Day Name Headers (Monday to Sunday) -->
             <div class="grid grid-cols-7 gap-1 text-center font-bold text-[10px] text-slate-400 py-1 border-b border-slate-100">
               <span>Sen</span>
               <span>Sel</span>
@@ -876,13 +896,15 @@
               <span>Min</span>
             </div>
 
-            <!-- Full Month Grid Cells (7 Columns x 5-6 Rows) -->
             <div class="grid grid-cols-7 gap-1 text-center">
               ${calendarGridCells.map(cell => {
-                // Find tasks scheduled on this date
                 const dayTasks = appState.tasks.filter(t => t.date === cell.isoDate);
                 const incompleteTasks = dayTasks.filter(t => !t.completed);
                 const hasHighPriority = incompleteTasks.some(t => t.priority === 'Tinggi');
+
+                // Extract unique categories for incomplete tasks on this date
+                const activeCategories = Array.from(new Set(incompleteTasks.map(t => t.category)));
+                const allCompleted = dayTasks.length > 0 && incompleteTasks.length === 0;
 
                 return `
                   <button onclick="selectPlannerDate('${cell.isoDate}')" class="relative flex flex-col items-center justify-center h-10 rounded-2xl transition-all press-effect ${
@@ -892,14 +914,15 @@
                   }">
                     <span class="text-xs font-semibold">${cell.dayNumber}</span>
                     
-                    <!-- Visual Red/Blue Task Indicator Dots -->
+                    <!-- COLOR-CODED CATEGORY DOTS ON DATE CELL -->
                     ${dayTasks.length > 0 ? `
-                      <div class="absolute bottom-1 flex items-center space-x-0.5">
-                        ${incompleteTasks.length > 0 ? `
-                          <span class="w-1.5 h-1.5 rounded-full ${hasHighPriority ? 'bg-apple-red animate-pulse' : 'bg-amber-400'}"></span>
-                        ` : `
+                      <div class="absolute bottom-1 flex items-center justify-center space-x-0.5">
+                        ${allCompleted ? `
                           <span class="w-1.5 h-1.5 rounded-full bg-apple-green"></span>
-                        `}
+                        ` : activeCategories.slice(0, 3).map(cat => `
+                          <span class="w-1.5 h-1.5 rounded-full ${getCategoryColor(cat).dotBg}"></span>
+                        `).join('')}
+                        ${hasHighPriority ? '<span class="w-1.5 h-1.5 rounded-full bg-apple-red animate-pulse" title="Prioritas Tinggi"></span>' : ''}
                       </div>
                     ` : ''}
                   </button>
@@ -907,20 +930,40 @@
               }).join('')}
             </div>
 
-            <!-- Legend Info for Task Indicators -->
-            <div class="flex items-center justify-center space-x-4 text-[10px] text-slate-400 pt-2 border-t border-slate-50">
-              <div class="flex items-center space-x-1">
-                <span class="w-2 h-2 rounded-full bg-apple-red"></span>
-                <span>Tugas Prioritas / Ada Tugas</span>
+            <!-- DETAILED COLOR LEGEND PER CATEGORY -->
+            <div class="pt-2.5 border-t border-slate-100 space-y-1.5">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center">Keterangan Warna Kategori:</span>
+              <div class="grid grid-cols-4 gap-1 text-[10px] text-slate-600 font-medium text-center">
+                <div class="flex items-center justify-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <span>Kuliah</span>
+                </div>
+                <div class="flex items-center justify-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                  <span>Rapat</span>
+                </div>
+                <div class="flex items-center justify-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>Organisasi</span>
+                </div>
+                <div class="flex items-center justify-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                  <span>Pribadi</span>
+                </div>
               </div>
-              <div class="flex items-center space-x-1">
-                <span class="w-2 h-2 rounded-full bg-apple-green"></span>
-                <span>Tugas Selesai</span>
+              <div class="flex items-center justify-center space-x-3 text-[10px] text-slate-500 pt-1">
+                <div class="flex items-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-apple-red animate-pulse"></span>
+                  <span class="font-semibold text-apple-red">🔥 Prioritas Tinggi</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                  <span class="w-2 h-2 rounded-full bg-apple-green"></span>
+                  <span>Selesai</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Date Filter Indicator Banner -->
           ${appState.selectedPlannerDate ? `
             <div class="flex justify-between items-center p-2.5 bg-blue-50 rounded-2xl text-xs text-apple-blue px-4">
               <span class="font-medium">Filter Tanggal: <b>${appState.selectedPlannerDate}</b></span>
@@ -928,22 +971,24 @@
             </div>
           ` : ''}
 
-          <!-- Category Filter Pills -->
+          <!-- CATEGORY FILTER PILLS WITH CUSTOM COLORS -->
           <div class="flex space-x-1.5 overflow-x-auto hide-scrollbar pb-1">
-            ${categories.map(cat => `
-              <button onclick="selectPlannerCategory('${cat}')" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all press-effect ${
-                appState.plannerCategoryFilter === cat ? 'bg-apple-blue text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200/60'
-              }">${cat}</button>
-            `).join('')}
+            ${categories.map(cat => {
+              const catColor = getCategoryColor(cat);
+              const isActive = appState.plannerCategoryFilter === cat;
+              return `
+                <button onclick="selectPlannerCategory('${cat}')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all press-effect ${
+                  isActive ? (cat === 'Semua' ? 'bg-slate-900 text-white shadow-sm' : catColor.activeFilter) : 'bg-white text-slate-600 border border-slate-200/60 hover:bg-slate-50'
+                }">${cat}</button>
+              `;
+            }).join('')}
           </div>
 
-          <!-- Add Task Action Button -->
           <button onclick="openTaskModal()" class="w-full py-3 bg-apple-blue text-white rounded-2xl font-semibold text-xs shadow-md flex items-center justify-center space-x-2 press-effect">
             <i data-lucide="plus-circle" class="w-4 h-4"></i>
             <span>Tambah Jadwal / Tugas Baru</span>
           </button>
 
-          <!-- Tasks List -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Agenda (${filteredTasks.length})</h3>
@@ -957,13 +1002,12 @@
                   </button>
                   <div>
                     <h4 class="text-xs font-bold text-slate-800 ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
-                    <p class="text-[10px] text-slate-400 mt-0.5">${task.category} • ${task.date} @ ${task.time}</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">${task.date} @ ${task.time}</p>
                   </div>
                 </div>
                 <div class="flex items-center space-x-2">
-                  <span class="text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                    task.priority === 'Tinggi' ? 'bg-red-50 text-apple-red font-bold' : 'bg-slate-100 text-slate-600'
-                  }">${task.priority}</span>
+                  <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold ${getCategoryColor(task.category).badge}">${task.category}</span>
+                  ${task.priority === 'Tinggi' ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-apple-red font-bold">🔥 High</span>' : ''}
                   <button onclick="editTask(${task.id})" class="text-slate-400 hover:text-apple-blue press-effect p-1">
                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                   </button>
