@@ -35,15 +35,15 @@ if ($method === 'POST' || $method === 'PUT') {
         jsonResponse(['success' => true, 'message' => 'Setoran tabungan berhasil ditambahkan!']);
     }
 
-    $dailyBudget = (float)($data['dailyBudget'] ?? 100000);
-    $savingsTarget = (float)($data['savingsTarget'] ?? 5000000);
-    $savingsCurrent = (float)($data['savingsCurrent'] ?? 2150000);
-    $savingsName = trim($data['savingsName'] ?? 'Beli Laptop Pro');
+    $dailyBudget = (float)($data['dailyBudget'] ?? ($data['daily_budget'] ?? 100000));
+    $savingsTarget = (float)($data['savingsTarget'] ?? ($data['savings_target'] ?? 5000000));
+    $savingsCurrent = (float)($data['savingsCurrent'] ?? ($data['savings_current'] ?? 2150000));
+    $savingsName = trim($data['savingsName'] ?? ($data['savings_name'] ?? 'Beli HP Xiaomi 13T'));
 
     $stmt = $pdo->prepare("INSERT INTO settings (user_id, daily_budget, savings_target, savings_current, savings_name) 
         VALUES (?, ?, ?, ?, ?) 
         ON DUPLICATE KEY UPDATE daily_budget = VALUES(daily_budget), savings_target = VALUES(savings_target), savings_current = VALUES(savings_current), savings_name = VALUES(savings_name)");
     $stmt->execute([$userId, $dailyBudget, $savingsTarget, $savingsCurrent, $savingsName]);
 
-    jsonResponse(['success' => true, 'message' => 'Pengaturan berhasil diperbarui']);
+    jsonResponse(['success' => true, 'message' => 'Pengaturan anggaran & target tabungan berhasil diperbarui']);
 }

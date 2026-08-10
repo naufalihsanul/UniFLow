@@ -218,8 +218,8 @@
             <label class="block text-xs font-semibold text-slate-500 mb-1">Prioritas</label>
             <select id="task-priority" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue">
               <option value="Tinggi">Tinggi 🔥 (Merah)</option>
-              <option value="Sedang" selected>Sedang ⚡</option>
-              <option value="Rendah">Rendah ☕</option>
+              <option value="Sedang" selected>Sedang ⚡ (Oranye)</option>
+              <option value="Rendah">Rendah ☕ (Abu-Abu)</option>
             </select>
           </div>
         </div>
@@ -354,35 +354,43 @@
     </div>
   </div>
 
-  <!-- 6. Edit Savings / Deposit Savings Modal -->
+  <!-- 6. EDIT FINANCIAL SETTINGS MODAL (Custom Daily Budget Limit & Target HP/Laptop) -->
   <div id="modal-edit-savings" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden opacity-0 transition-opacity duration-200">
-    <div class="bg-white w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-4">
+    <div class="bg-white w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
-        <h3 class="text-lg font-bold text-slate-900">Kelola Target Tabungan</h3>
+        <h3 class="text-lg font-bold text-slate-900">Pengaturan Keuangan & Target</h3>
         <button onclick="closeModal('modal-edit-savings')" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-6 h-6"></i>
         </button>
       </div>
       <form id="form-savings" onsubmit="handleSaveSavings(event)" class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Target Tabungan</label>
-          <input type="text" id="savings-name" required placeholder="Contoh: Beli Laptop Pro" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Batas Pengeluaran Maksimal Harian (Rp)</label>
+          <input type="number" id="settings-daily-budget" required placeholder="50000" class="w-full px-4 py-2.5 rounded-xl bg-blue-50/60 text-blue-900 font-bold text-base focus:outline-none focus:ring-2 focus:ring-apple-blue" />
+          <span class="text-[10px] text-slate-400 italic">Batas aman pengeluaran per hari (misal: 50.000)</span>
         </div>
+
+        <div class="pt-2 border-t border-slate-100">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Nama Target Impian</label>
+          <input type="text" id="savings-name" required placeholder="Contoh: Beli HP Xiaomi 13T / Laptop Pro" class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Target Total (Rp)</label>
-            <input type="number" id="savings-target" required class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Total Target (Rp)</label>
+            <input type="number" id="savings-target" required placeholder="5000000" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Terkumpul Saat Ini (Rp)</label>
-            <input type="number" id="savings-current" required class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Tabungan Awal (Rp)</label>
+            <input type="number" id="savings-current" required placeholder="2150000" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none" />
           </div>
         </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Tambah Setoran Baru (Rp - Opsional)</label>
-          <input type="number" id="savings-deposit" placeholder="Misal: 50000" class="w-full px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-800 text-sm font-semibold focus:outline-none" />
-        </div>
-        <button type="submit" class="w-full py-3 bg-apple-blue text-white rounded-xl font-semibold text-sm shadow-md press-effect mt-2">Simpan Perubahan Tabungan</button>
+
+        <p class="text-[10px] text-emerald-600 bg-emerald-50 p-2.5 rounded-xl leading-relaxed">
+          ⚡ <b>Otomatisasi Tabungan:</b> Setiap pemasukan & pengeluaran baru akan **otomatis dihitung secara real-time** ke persentase & saldo tabungan target Anda tanpa perlu klik tombol lagi!
+        </p>
+
+        <button type="submit" class="w-full py-3 bg-apple-blue text-white rounded-xl font-semibold text-sm shadow-md press-effect mt-2">Simpan Pengaturan Keuangan</button>
       </form>
     </div>
   </div>
@@ -456,7 +464,7 @@
         dailyBudget: 100000,
         savingsTarget: 5000000,
         savingsCurrent: 2150000,
-        savingsName: 'Beli Laptop Pro'
+        savingsName: 'Beli HP Xiaomi 13T'
       }
     };
 
@@ -495,8 +503,40 @@
     function getCategoryColor(cat) {
       return categoryColors[cat] || {
         dotBg: 'bg-slate-400',
-        badge: 'bg-slate-100 text-slate-700',
+        badge: 'bg-slate-100 text-slate-700 border border-slate-200',
         activeFilter: 'bg-slate-800 text-white'
+      };
+    }
+
+    function getPriorityBadgeHTML(priority) {
+      if (priority === 'Tinggi') {
+        return `<span class="inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-bold whitespace-nowrap bg-red-50 text-apple-red border border-red-200 shadow-2xs">🔥 High</span>`;
+      } else if (priority === 'Sedang') {
+        return `<span class="inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-semibold whitespace-nowrap bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">⚡ Med</span>`;
+      } else {
+        return `<span class="inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full font-medium whitespace-nowrap bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs">☕ Low</span>`;
+      }
+    }
+
+    // AUTOMATIC SAVINGS & SURPLUS CALCULATOR (REAL-TIME AUTOMATION!)
+    function calculateSavingsStats() {
+      const totalIncome = appState.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+      const totalExpense = appState.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      const netSurplus = Math.max(0, totalIncome - totalExpense);
+      const effectiveCurrent = appState.settings.savingsCurrent + netSurplus;
+      const target = appState.settings.savingsTarget || 5000000;
+      const percent = Math.min(100, Math.round((effectiveCurrent / target) * 100));
+      const remaining = Math.max(0, target - effectiveCurrent);
+
+      return {
+        totalIncome,
+        totalExpense,
+        netSurplus,
+        effectiveCurrent,
+        target,
+        percent,
+        remaining
       };
     }
 
@@ -611,8 +651,10 @@
         .filter(t => t.date === todayStr && t.type === 'expense')
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
-      const budgetLimit = appState.settings.dailyBudget;
+      const budgetLimit = appState.settings.dailyBudget || 50000;
       const budgetPercent = Math.min(Math.round((todayExpenses / budgetLimit) * 100), 100);
+
+      const savingsStats = calculateSavingsStats();
 
       let alertBannerHTML = '';
       if (todayExpenses > budgetLimit) {
@@ -621,7 +663,7 @@
             <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
             <div>
               <p class="text-xs font-bold uppercase tracking-wider">Over Budget!</p>
-              <p class="text-xs opacity-90">Pengeluaran hari ini telah melebihi batas harian ${formatRupiah(budgetLimit)}.</p>
+              <p class="text-xs opacity-90">Pengeluaran hari ini melebihi batas harian ${formatRupiah(budgetLimit)}.</p>
             </div>
           </div>
         `;
@@ -631,7 +673,7 @@
             <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0 mt-0.5"></i>
             <div>
               <p class="text-xs font-bold uppercase tracking-wider">Budget Hampir Habis (${budgetPercent}%)</p>
-              <p class="text-xs opacity-90">Anda telah menggunakan sebagian besar anggaran harian.</p>
+              <p class="text-xs opacity-90">Anda mendekati batas pengeluaran harian ${formatRupiah(budgetLimit)}.</p>
             </div>
           </div>
         `;
@@ -650,7 +692,7 @@
           <div class="p-4 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg">
             <p class="text-xs font-medium opacity-80">${getFormattedDate()}</p>
             <h2 class="text-xl font-bold mt-1">Halo, Mahasiswa! 👋</h2>
-            <p class="text-xs opacity-90 mt-1">Data Anda tersinkronisasi otomatis di Xiaomi 13T & Laptop.</p>
+            <p class="text-xs opacity-90 mt-1">Batas Pengeluaran Harian: <b>${formatRupiah(budgetLimit)}</b></p>
           </div>
 
           ${alertBannerHTML}
@@ -664,8 +706,8 @@
             ${nextSchedule ? `
               <h3 class="text-base font-bold text-slate-800">${nextSchedule.title}</h3>
               <div class="flex items-center space-x-2 text-xs text-slate-500">
-                <span class="px-2 py-0.5 rounded-md font-semibold text-xs ${getCategoryColor(nextSchedule.category).badge}">${nextSchedule.category}</span>
-                <span>• Prioritas: ${nextSchedule.priority}</span>
+                <span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] ${getCategoryColor(nextSchedule.category).badge}">${nextSchedule.category}</span>
+                ${getPriorityBadgeHTML(nextSchedule.priority)}
               </div>
             ` : `
               <p class="text-xs text-slate-400 italic py-2">Tidak ada agenda mendesak hari ini. Bebas!</p>
@@ -676,7 +718,7 @@
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div>
-                <p class="text-xs text-slate-400 font-medium">Pengeluaran Hari Ini</p>
+                <p class="text-xs text-slate-400 font-medium">Pengeluaran Hari Ini (Batas: ${formatRupiah(budgetLimit)})</p>
                 <h3 class="text-lg font-bold text-slate-900">${formatRupiah(todayExpenses)} <span class="text-xs font-normal text-slate-400">/ ${formatRupiah(budgetLimit)}</span></h3>
               </div>
               <button onclick="switchTab('money')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 press-effect">
@@ -688,7 +730,25 @@
             </div>
           </div>
 
-          <!-- 4. Catatan Terbaru & Quick Ideas Widget -->
+          <!-- 4. Target Tabungan Automatic Widget -->
+          <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
+            <div class="flex justify-between items-center">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Target Impian (Otomatis)</span>
+                <h4 class="text-xs font-bold text-slate-900 mt-1">${appState.settings.savingsName}</h4>
+              </div>
+              <span class="text-xs font-extrabold text-emerald-600">${savingsStats.percent}%</span>
+            </div>
+            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+              <div class="h-full bg-apple-green transition-all duration-500" style="width: ${savingsStats.percent}%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] text-slate-500">
+              <span>Terkumpul: <b>${formatRupiah(savingsStats.effectiveCurrent)}</b></span>
+              <span>Target: <b>${formatRupiah(savingsStats.target)}</b></span>
+            </div>
+          </div>
+
+          <!-- 5. Catatan Terbaru & Quick Ideas Widget -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div class="flex items-center space-x-2">
@@ -725,7 +785,7 @@
             </div>
           </div>
 
-          <!-- 5. Quick Actions Grid -->
+          <!-- 6. Quick Actions Grid -->
           <div class="grid grid-cols-3 gap-2">
             <button onclick="switchTab('planner')" class="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-1.5 press-effect">
               <div class="w-9 h-9 rounded-xl bg-blue-50 text-apple-blue flex items-center justify-center">
@@ -747,7 +807,7 @@
             </button>
           </div>
 
-          <!-- 6. Today's Tasks Preview -->
+          <!-- 7. Today's Tasks Preview -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Tugas & Agenda Mendatang</h3>
@@ -755,23 +815,26 @@
             </div>
             <div class="space-y-2">
               ${upcomingTasks.length > 0 ? upcomingTasks.map(task => `
-                <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl">
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
                   <div class="flex items-center space-x-3">
-                    <button onclick="toggleTaskStatus(${task.id}, ${task.completed})" class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center press-effect">
+                    <button onclick="toggleTaskStatus(${task.id}, ${task.completed})" class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center press-effect flex-shrink-0">
                       ${task.completed ? '<div class="w-3 h-3 bg-apple-blue rounded-full"></div>' : ''}
                     </button>
                     <div>
                       <p class="text-xs font-semibold text-slate-800 ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</p>
-                      <p class="text-[10px] text-slate-400">${task.category} • ${task.time}</p>
+                      <p class="text-[10px] text-slate-400 mt-0.5">${task.time}</p>
                     </div>
                   </div>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${getCategoryColor(task.category).badge}">${task.category}</span>
+                  <div class="flex items-center space-x-1.5 flex-shrink-0">
+                    <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold ${getCategoryColor(task.category).badge}">${task.category}</span>
+                    ${getPriorityBadgeHTML(task.priority)}
+                  </div>
                 </div>
               `).join('') : '<p class="text-xs text-slate-400 italic text-center py-2">Semua tugas selesai! 🎉</p>'}
             </div>
           </div>
 
-          <!-- 7. Habits Quick Tracker -->
+          <!-- 8. Habits Quick Tracker -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Kebiasaan Hari Ini</h3>
@@ -796,7 +859,7 @@
       `;
     }
 
-    // --- 2. PLANNER VIEW (WITH CATEGORY COLOR-CODED CALENDAR GRID & LEGEND!) ---
+    // --- 2. PLANNER VIEW ---
     function renderPlanner(container) {
       const now = new Date();
       const targetDate = new Date(now.getFullYear(), now.getMonth() + appState.plannerMonthOffset, 1);
@@ -902,7 +965,6 @@
                 const incompleteTasks = dayTasks.filter(t => !t.completed);
                 const hasHighPriority = incompleteTasks.some(t => t.priority === 'Tinggi');
 
-                // Extract unique categories for incomplete tasks on this date
                 const activeCategories = Array.from(new Set(incompleteTasks.map(t => t.category)));
                 const allCompleted = dayTasks.length > 0 && incompleteTasks.length === 0;
 
@@ -914,7 +976,6 @@
                   }">
                     <span class="text-xs font-semibold">${cell.dayNumber}</span>
                     
-                    <!-- COLOR-CODED CATEGORY DOTS ON DATE CELL -->
                     ${dayTasks.length > 0 ? `
                       <div class="absolute bottom-1 flex items-center justify-center space-x-0.5">
                         ${allCompleted ? `
@@ -989,31 +1050,35 @@
             <span>Tambah Jadwal / Tugas Baru</span>
           </button>
 
+          <!-- PLANNER TASK LIST -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Agenda (${filteredTasks.length})</h3>
             </div>
 
             ${filteredTasks.length > 0 ? filteredTasks.map(task => `
-              <div class="p-3.5 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                  <button onclick="toggleTaskStatus(${task.id}, ${task.completed})" class="w-6 h-6 rounded-full border-2 ${task.completed ? 'bg-apple-green border-apple-green text-white' : 'border-slate-300'} flex items-center justify-center press-effect">
+              <div class="p-3.5 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-between gap-2">
+                <div class="flex items-center space-x-3 min-w-0 flex-1">
+                  <button onclick="toggleTaskStatus(${task.id}, ${task.completed})" class="w-6 h-6 rounded-full border-2 ${task.completed ? 'bg-apple-green border-apple-green text-white' : 'border-slate-300'} flex items-center justify-center press-effect flex-shrink-0">
                     ${task.completed ? '<i data-lucide="check" class="w-3.5 h-3.5"></i>' : ''}
                   </button>
-                  <div>
-                    <h4 class="text-xs font-bold text-slate-800 ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
+                  <div class="min-w-0 flex-1">
+                    <h4 class="text-xs font-bold text-slate-800 truncate ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
                     <p class="text-[10px] text-slate-400 mt-0.5">${task.date} @ ${task.time}</p>
                   </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                  <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold ${getCategoryColor(task.category).badge}">${task.category}</span>
-                  ${task.priority === 'Tinggi' ? '<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-apple-red font-bold">🔥 High</span>' : ''}
-                  <button onclick="editTask(${task.id})" class="text-slate-400 hover:text-apple-blue press-effect p-1">
-                    <i data-lucide="edit-3" class="w-4 h-4"></i>
-                  </button>
-                  <button onclick="requestDeleteTask(${task.id}, '${task.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect p-1">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                  </button>
+                
+                <div class="flex items-center space-x-1.5 flex-shrink-0">
+                  <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap ${getCategoryColor(task.category).badge}">${task.category}</span>
+                  ${getPriorityBadgeHTML(task.priority)}
+                  <div class="flex items-center space-x-1 pl-1">
+                    <button onclick="editTask(${task.id})" class="text-slate-400 hover:text-apple-blue press-effect p-1" title="Edit Agenda">
+                      <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="requestDeleteTask(${task.id}, '${task.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect p-1" title="Hapus Agenda">
+                      <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             `).join('') : '<p class="text-xs text-slate-400 italic text-center py-6">Tidak ada agenda ditemukan.</p>'}
@@ -1206,17 +1271,16 @@
       }, 3000);
     }
 
-    // --- 4. MONEY VIEW ---
+    // --- 4. MONEY VIEW (WITH REAL-TIME AUTOMATIC SAVINGS SURPLUS COMPUTATION!) ---
     function renderMoney(container) {
       const todayStr = getTodayString();
-      const totalIncome = appState.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
-      const totalExpense = appState.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
-      const balance = totalIncome - totalExpense;
+      const savingsStats = calculateSavingsStats();
 
-      const savingsPercent = Math.min(Math.round((appState.settings.savingsCurrent / appState.settings.savingsTarget) * 100), 100);
+      const balance = savingsStats.totalIncome - savingsStats.totalExpense;
 
       container.innerHTML = `
         <div class="space-y-4">
+          <!-- Total Balance Wallet Card -->
           <div class="p-5 rounded-3xl bg-slate-900 text-white shadow-xl space-y-4">
             <div class="flex justify-between items-center">
               <span class="text-xs font-semibold text-slate-400">Total Saldo Dompet</span>
@@ -1227,16 +1291,17 @@
             </div>
             <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-xs">
               <div>
-                <p class="text-slate-400 text-[10px]">Pemasukan</p>
-                <p class="font-bold text-apple-green">+${formatRupiah(totalIncome)}</p>
+                <p class="text-slate-400 text-[10px]">Pemasukan Total</p>
+                <p class="font-bold text-apple-green">+${formatRupiah(savingsStats.totalIncome)}</p>
               </div>
               <div>
-                <p class="text-slate-400 text-[10px]">Pengeluaran</p>
-                <p class="font-bold text-apple-red">-${formatRupiah(totalExpense)}</p>
+                <p class="text-slate-400 text-[10px]">Pengeluaran Total</p>
+                <p class="font-bold text-apple-red">-${formatRupiah(savingsStats.totalExpense)}</p>
               </div>
             </div>
           </div>
 
+          <!-- Add Transaction Buttons -->
           <div class="grid grid-cols-2 gap-3">
             <button onclick="openTransactionModal('expense')" class="py-3 bg-red-50 text-apple-red rounded-2xl font-semibold text-xs border border-red-100 shadow-sm flex items-center justify-center space-x-2 press-effect">
               <i data-lucide="minus-circle" class="w-4 h-4"></i>
@@ -1248,26 +1313,45 @@
             </button>
           </div>
 
+          <!-- TARGET TABUNGAN WIDGET (AUTOMATIC REAL-TIME CALCULATED PROGRESS!) -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div>
-                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Target Tabungan</span>
-                <h4 class="text-xs font-bold text-slate-800">${appState.settings.savingsName}</h4>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Target Impian</span>
+                <h4 class="text-xs font-bold text-slate-800 mt-1">${appState.settings.savingsName}</h4>
               </div>
               <button onclick="openSavingsModal()" class="px-2.5 py-1 bg-blue-50 text-apple-blue font-semibold text-xs rounded-xl press-effect flex items-center space-x-1">
                 <i data-lucide="settings" class="w-3.5 h-3.5"></i>
                 <span>Kelola Target</span>
               </button>
             </div>
-            <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-              <div class="h-full bg-apple-blue transition-all duration-500" style="width: ${savingsPercent}%"></div>
+            
+            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+              <div class="h-full bg-apple-green transition-all duration-500" style="width: ${savingsStats.percent}%"></div>
             </div>
-            <div class="flex justify-between text-[10px] text-slate-400">
-              <span>Progres: ${savingsPercent}%</span>
-              <span>${formatRupiah(appState.settings.savingsCurrent)} dari ${formatRupiah(appState.settings.savingsTarget)}</span>
+
+            <div class="flex justify-between items-center text-[10px] text-slate-600">
+              <span>Progres Terkumpul: <b class="text-emerald-600 text-xs">${savingsStats.percent}%</b></span>
+              <span><b>${formatRupiah(savingsStats.effectiveCurrent)}</b> / ${formatRupiah(savingsStats.target)}</span>
+            </div>
+
+            <div class="p-2.5 bg-slate-50 rounded-xl text-[10px] text-slate-500 space-y-1">
+              <div class="flex justify-between">
+                <span>Tabungan Awal:</span>
+                <span class="font-semibold text-slate-700">${formatRupiah(appState.settings.savingsCurrent)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Surplus Bersih Transaksi (Otomatis):</span>
+                <span class="font-semibold text-emerald-600">+${formatRupiah(savingsStats.netSurplus)}</span>
+              </div>
+              <div class="flex justify-between pt-1 border-t border-slate-200/60 font-bold text-slate-800">
+                <span>Sisa Kekurangan Uang:</span>
+                <span class="text-apple-blue">${formatRupiah(savingsStats.remaining)}</span>
+              </div>
             </div>
           </div>
 
+          <!-- Transaction History List -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Riwayat Transaksi</h3>
@@ -1616,9 +1700,10 @@
 
     function openSavingsModal() {
       document.getElementById('form-savings').reset();
-      document.getElementById('savings-name').value = appState.settings.savingsName;
-      document.getElementById('savings-target').value = appState.settings.savingsTarget;
-      document.getElementById('savings-current').value = appState.settings.savingsCurrent;
+      document.getElementById('settings-daily-budget').value = appState.settings.dailyBudget || 50000;
+      document.getElementById('savings-name').value = appState.settings.savingsName || 'Beli HP Xiaomi 13T';
+      document.getElementById('savings-target').value = appState.settings.savingsTarget || 5000000;
+      document.getElementById('savings-current').value = appState.settings.savingsCurrent || 2150000;
       openModal('modal-edit-savings');
     }
 
@@ -1864,24 +1949,16 @@
 
     async function handleSaveSavings(e) {
       e.preventDefault();
+      const dailyBudget = document.getElementById('settings-daily-budget').value;
       const savingsName = document.getElementById('savings-name').value;
       const savingsTarget = document.getElementById('savings-target').value;
       const savingsCurrent = document.getElementById('savings-current').value;
-      const depositAmount = document.getElementById('savings-deposit').value;
 
       try {
-        if (depositAmount && Number(depositAmount) > 0) {
-          await fetch('./api/settings.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ depositAmount: Number(depositAmount) })
-          });
-        }
-
         const response = await fetch('./api/settings.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ savingsName, savingsTarget, savingsCurrent })
+          body: JSON.stringify({ dailyBudget, savingsName, savingsTarget, savingsCurrent })
         });
         const res = await response.json();
         if (res.success) {
@@ -1889,7 +1966,7 @@
           await fetchAppState();
         }
       } catch (err) {
-        alert('Gagal menyimpan target tabungan: ' + err.message);
+        alert('Gagal menyimpan pengaturan keuangan: ' + err.message);
       }
     }
 
