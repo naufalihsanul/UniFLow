@@ -217,7 +217,7 @@
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">Prioritas</label>
             <select id="task-priority" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue">
-              <option value="Tinggi">Tinggi</option>
+              <option value="Tinggi">Tinggi 💀</option>
               <option value="Sedang" selected>Sedang</option>
               <option value="Rendah">Rendah</option>
             </select>
@@ -508,6 +508,17 @@
       };
     }
 
+    // PRIORITY TEXT FORMATTER (💀 Icon specifically for High Priority!)
+    function getPriorityText(priority) {
+      if (priority === 'Tinggi') {
+        return '💀 Tinggi';
+      } else if (priority === 'Rendah') {
+        return 'Rendah';
+      } else {
+        return 'Sedang';
+      }
+    }
+
     // AUTOMATIC SAVINGS & SURPLUS CALCULATOR (REAL-TIME AUTOMATION!)
     function calculateSavingsStats() {
       const totalIncome = appState.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
@@ -688,7 +699,7 @@
 
           ${alertBannerHTML}
 
-          <!-- 2. Next Schedule Card -->
+          <!-- 2. Next Schedule Card (💀 Icon for High Priority) -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-[10px] font-bold uppercase tracking-wider text-apple-blue bg-blue-50 px-2.5 py-1 rounded-full">Agenda Berikutnya</span>
@@ -698,7 +709,7 @@
               <h3 class="text-base font-bold text-slate-800">${nextSchedule.title}</h3>
               <div class="flex items-center space-x-2 text-xs text-slate-500">
                 <span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] ${getCategoryColor(nextSchedule.category).badge}">${nextSchedule.category}</span>
-                <span class="text-[11px] text-slate-500">Prioritas: <b>${nextSchedule.priority || 'Sedang'}</b></span>
+                <span class="text-[11px] text-slate-500">Prioritas: <b class="${nextSchedule.priority === 'Tinggi' ? 'text-apple-red font-bold' : ''}">${getPriorityText(nextSchedule.priority)}</b></span>
               </div>
             ` : `
               <p class="text-xs text-slate-400 italic py-2">Tidak ada agenda mendesak hari ini. Bebas!</p>
@@ -798,7 +809,7 @@
             </button>
           </div>
 
-          <!-- 7. Today's Tasks Preview -->
+          <!-- 7. Today's Tasks Preview (💀 Icon for High Priority) -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Tugas & Agenda Mendatang</h3>
@@ -813,7 +824,7 @@
                     </button>
                     <div>
                       <p class="text-xs font-semibold text-slate-800 ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</p>
-                      <p class="text-[10px] text-slate-400 mt-0.5">${task.time} • Prioritas: ${task.priority || 'Sedang'}</p>
+                      <p class="text-[10px] text-slate-400 mt-0.5">${task.time} • Prioritas: <span class="${task.priority === 'Tinggi' ? 'text-apple-red font-bold' : ''}">${getPriorityText(task.priority)}</span></p>
                     </div>
                   </div>
                   <div class="flex items-center space-x-1.5 flex-shrink-0">
@@ -824,7 +835,7 @@
             </div>
           </div>
 
-          <!-- 8. Habits Quick Tracker (WITH DELETE HABIT BUTTON!) -->
+          <!-- 8. Habits Quick Tracker -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Kebiasaan Hari Ini</h3>
@@ -854,7 +865,7 @@
       `;
     }
 
-    // --- 2. PLANNER VIEW ---
+    // --- 2. PLANNER VIEW (💀 Icon for High Priority in Subtitle) ---
     function renderPlanner(container) {
       const now = new Date();
       const targetDate = new Date(now.getFullYear(), now.getMonth() + appState.plannerMonthOffset, 1);
@@ -1041,7 +1052,7 @@
             <span>Tambah Jadwal / Tugas Baru</span>
           </button>
 
-          <!-- PLANNER TASK LIST -->
+          <!-- PLANNER TASK LIST (💀 Icon for High Priority) -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Agenda (${filteredTasks.length})</h3>
@@ -1055,7 +1066,7 @@
                   </button>
                   <div class="min-w-0 flex-1">
                     <h4 class="text-xs font-bold text-slate-800 truncate ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
-                    <p class="text-[10px] text-slate-400 mt-0.5">${task.date} @ ${task.time} • Prioritas: <span class="font-medium text-slate-600">${task.priority || 'Sedang'}</span></p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">${task.date} @ ${task.time} • Prioritas: <span class="font-medium ${task.priority === 'Tinggi' ? 'text-apple-red font-bold' : 'text-slate-600'}">${getPriorityText(task.priority)}</span></p>
                   </div>
                 </div>
                 
@@ -1822,7 +1833,7 @@
       }).catch(err => console.error('Background pin note failed:', err));
     }
 
-    // --- FORM ACTIONS TO PHP BACKEND ---
+    // --- FORM ACTIONS TO PHP BACKEND (OPTIMISTIC 0ms INSTANT ENGINE!) ---
     async function handleSaveTask(e) {
       e.preventDefault();
       const id = document.getElementById('task-id').value;
@@ -1832,6 +1843,34 @@
       const date = document.getElementById('task-date').value;
       const time = document.getElementById('task-time').value;
 
+      // 1. OPTIMISTIC IN-MEMORY UI UPDATE (0ms INSTANT RENDERING!)
+      if (id) {
+        const existingTask = appState.tasks.find(t => Number(t.id) === Number(id));
+        if (existingTask) {
+          existingTask.title = title;
+          existingTask.category = category;
+          existingTask.priority = priority;
+          existingTask.date = date;
+          existingTask.time = time;
+        }
+      } else {
+        const tempTask = {
+          id: Date.now(),
+          title,
+          category,
+          priority,
+          date,
+          time,
+          completed: false
+        };
+        appState.tasks.push(tempTask);
+      }
+
+      // Re-render UI & close modal instantly (0ms delay)
+      switchTab(appState.activeTab);
+      closeModal('modal-add-task');
+
+      // 2. ASYNCHRONOUS BACKGROUND MYSQL SYNC
       try {
         const response = await fetch('./api/tasks.php', {
           method: 'POST',
@@ -1839,12 +1878,15 @@
           body: JSON.stringify({ id: id || null, title, category, priority, date, time })
         });
         const res = await response.json();
-        if (res.success) {
-          closeModal('modal-add-task');
-          await fetchAppState();
+        if (res.success && !id && res.data && res.data.id) {
+          // Update temporary ID with actual MySQL ID
+          const lastIndex = appState.tasks.length - 1;
+          if (lastIndex >= 0 && typeof appState.tasks[lastIndex].id === 'number' && appState.tasks[lastIndex].id > 1000000000000) {
+            appState.tasks[lastIndex].id = res.data.id;
+          }
         }
       } catch (err) {
-        alert('Gagal menyimpan tugas: ' + err.message);
+        console.error('Background task sync error:', err);
       }
     }
 
@@ -1969,21 +2011,16 @@
       appState.settings.savingsCurrent = Number(savingsCurrent);
 
       switchTab(appState.activeTab);
+      closeModal('modal-edit-savings');
 
       try {
-        const response = await fetch('./api/settings.php', {
+        await fetch('./api/settings.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ dailyBudget, savingsName, savingsTarget, savingsCurrent })
         });
-        const res = await response.json();
-        if (res.success) {
-          closeModal('modal-edit-savings');
-        } else {
-          alert(res.message || 'Gagal menyimpan pengaturan');
-        }
       } catch (err) {
-        alert('Gagal menyimpan pengaturan keuangan: ' + err.message);
+        console.error('Background settings save error:', err);
       }
     }
 
