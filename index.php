@@ -318,7 +318,6 @@
           </select>
         </div>
 
-        <!-- Optional Receipt / Transaction Photo Upload -->
         <div>
           <label class="block text-xs font-semibold text-slate-500 mb-1">Lampirkan Bukti / Foto Nota (Opsional)</label>
           <input type="file" id="tx-image-file" accept="image/*" onchange="previewTransactionImage(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200" />
@@ -434,7 +433,7 @@
     </div>
   </div>
 
-  <!-- JavaScript Core Engine -->
+  <!-- JavaScript Core Engine with Optimistic Instant UI (0ms delay) & Dashboard Quick Notes -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -573,7 +572,7 @@
       if (window.lucide) lucide.createIcons();
     }
 
-    // --- 1. DASHBOARD VIEW ---
+    // --- 1. DASHBOARD VIEW (WITH LATEST NOTES & QUICK IDEAS WIDGET!) ---
     function renderDashboard(container) {
       const todayStr = getTodayString();
       const todayExpenses = appState.transactions
@@ -609,6 +608,11 @@
       const upcomingTasks = appState.tasks.filter(t => !t.completed).slice(0, 3);
       const nextSchedule = upcomingTasks[0];
 
+      // Get latest 2 notes for Dashboard Quick Ideas Widget
+      const latestNotes = [...appState.notes]
+        .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+        .slice(0, 2);
+
       container.innerHTML = `
         <div class="space-y-4">
           <div class="p-4 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg">
@@ -619,6 +623,7 @@
 
           ${alertBannerHTML}
 
+          <!-- Next Schedule Card -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-[10px] font-bold uppercase tracking-wider text-apple-blue bg-blue-50 px-2.5 py-1 rounded-full">Agenda Berikutnya</span>
@@ -635,6 +640,44 @@
             `}
           </div>
 
+          <!-- NEW WIDGET: Catatan Terbaru & Quick Ideas -->
+          <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-2">
+                <div class="w-6 h-6 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                </div>
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Catatan Terbaru & Quick Ideas</h3>
+              </div>
+              <button onclick="switchTab('notes')" class="text-xs font-semibold text-apple-blue press-effect">Lihat Semua</button>
+            </div>
+            <div class="space-y-2">
+              ${latestNotes.length > 0 ? latestNotes.map(note => {
+                const folder = appState.folders.find(f => Number(f.id) === Number(note.folderId));
+                const img = note.imageUrl || (note.imageUrls && note.imageUrls[0]);
+                return `
+                  <div onclick="switchTab('notes')" class="p-3 bg-amber-50/50 rounded-2xl border border-amber-100 flex items-start justify-between press-effect cursor-pointer space-x-3">
+                    <div class="space-y-1 flex-1">
+                      <div class="flex items-center space-x-2">
+                        <span class="text-xs font-bold text-slate-900 line-clamp-1">${note.title}</span>
+                        ${folder ? `<span class="text-[9px] px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-semibold">${folder.name}</span>` : ''}
+                      </div>
+                      <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed">${note.content}</p>
+                    </div>
+                    ${img ? `
+                      <img src="${img}" class="w-12 h-12 object-cover rounded-xl border border-amber-200 flex-shrink-0" />
+                    ` : ''}
+                  </div>
+                `;
+              }).join('') : `
+                <div class="p-3 bg-slate-50 rounded-2xl text-center">
+                  <p class="text-xs text-slate-400 italic">Belum ada catatan. Catat ide Anda dengan cepat!</p>
+                </div>
+              `}
+            </div>
+          </div>
+
+          <!-- Budget Summary Card -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div>
@@ -650,6 +693,7 @@
             </div>
           </div>
 
+          <!-- Quick Actions Grid -->
           <div class="grid grid-cols-3 gap-2">
             <button onclick="switchTab('planner')" class="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-1.5 press-effect">
               <div class="w-9 h-9 rounded-xl bg-blue-50 text-apple-blue flex items-center justify-center">
@@ -671,6 +715,7 @@
             </button>
           </div>
 
+          <!-- Today's Tasks Preview -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Tugas & Agenda Mendatang</h3>
@@ -694,6 +739,7 @@
             </div>
           </div>
 
+          <!-- Habits Quick Tracker -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Kebiasaan Hari Ini</h3>
@@ -1028,7 +1074,7 @@
       }, 3000);
     }
 
-    // --- 4. MONEY VIEW (WITH TRANSACTION RECEIPT PHOTO PREVIEW) ---
+    // --- 4. MONEY VIEW ---
     function renderMoney(container) {
       const todayStr = getTodayString();
       const totalIncome = appState.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
@@ -1090,7 +1136,6 @@
             </div>
           </div>
 
-          <!-- Transactions List with Receipt Thumbnail Preview -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Riwayat Transaksi</h3>
@@ -1119,7 +1164,6 @@
                   </div>
                 </div>
 
-                <!-- Receipt Image Thumbnail Attachment -->
                 ${tx.imageUrl ? `
                   <div class="pt-1 flex items-center space-x-2">
                     <img src="${tx.imageUrl}" onclick="viewFullImage('${tx.imageUrl}')" class="h-16 w-16 object-cover rounded-xl border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" />
@@ -1384,7 +1428,6 @@
       renderImagePreviewGrid();
     }
 
-    // --- TRANSACTION RECEIPT PHOTO PREVIEW HANDLER ---
     function openTransactionModal(type) {
       document.getElementById('form-transaction').reset();
       document.getElementById('tx-type').value = type;
@@ -1470,30 +1513,99 @@
 
     function requestDeleteFolder(id, name) {
       openConfirmDeleteModal('Folder', name, async () => {
+        // Optimistic UI delete
+        appState.folders = appState.folders.filter(f => Number(f.id) !== Number(id));
+        appState.notes = appState.notes.filter(n => Number(n.folderId) !== Number(id));
+        switchTab(appState.activeTab);
+
         await fetch(`./api/folders.php?id=${id}`, { method: 'DELETE' });
-        await fetchAppState();
       });
     }
 
     function requestDeleteTask(id, title) {
       openConfirmDeleteModal('Tugas', title, async () => {
+        // Optimistic UI delete
+        appState.tasks = appState.tasks.filter(t => Number(t.id) !== Number(id));
+        switchTab(appState.activeTab);
+
         await fetch(`./api/tasks.php?id=${id}`, { method: 'DELETE' });
-        await fetchAppState();
       });
     }
 
     function requestDeleteNote(id, title) {
       openConfirmDeleteModal('Catatan', title, async () => {
+        // Optimistic UI delete
+        appState.notes = appState.notes.filter(n => Number(n.id) !== Number(id));
+        switchTab(appState.activeTab);
+
         await fetch(`./api/notes.php?id=${id}`, { method: 'DELETE' });
-        await fetchAppState();
       });
     }
 
     function requestDeleteTransaction(id, title) {
       openConfirmDeleteModal('Transaksi', title, async () => {
+        // Optimistic UI delete
+        appState.transactions = appState.transactions.filter(t => Number(t.id) !== Number(id));
+        switchTab(appState.activeTab);
+
         await fetch(`./api/transactions.php?id=${id}`, { method: 'DELETE' });
-        await fetchAppState();
       });
+    }
+
+    // --- OPTIMISTIC UI INSTANT TOGGLES (0ms DELAY!) ---
+
+    function toggleHabit(id) {
+      // 1. OPTIMISTIC INSTANT UPDATE (0ms visual delay!)
+      const habit = appState.habits.find(h => Number(h.id) === Number(id));
+      if (habit) {
+        habit.completedToday = !habit.completedToday;
+        if (habit.completedToday) {
+          habit.streak += 1;
+        } else {
+          habit.streak = Math.max(0, habit.streak - 1);
+        }
+        // Re-render UI immediately!
+        switchTab(appState.activeTab);
+      }
+
+      // 2. BACKGROUND API FETCH TO MYSQL SERVER
+      fetch('./api/habits.php', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      }).catch(err => console.error('Background habit update failed:', err));
+    }
+
+    function toggleTaskStatus(id, currentStatus) {
+      // 1. OPTIMISTIC INSTANT UPDATE (0ms visual delay!)
+      const task = appState.tasks.find(t => Number(t.id) === Number(id));
+      if (task) {
+        task.completed = !currentStatus;
+        switchTab(appState.activeTab);
+      }
+
+      // 2. BACKGROUND API FETCH TO MYSQL SERVER
+      fetch('./api/tasks.php', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: !currentStatus })
+      }).catch(err => console.error('Background task update failed:', err));
+    }
+
+    function togglePinNote(id) {
+      // 1. OPTIMISTIC INSTANT UPDATE (0ms visual delay!)
+      const note = appState.notes.find(n => Number(n.id) === Number(id));
+      if (note) {
+        note.isPinned = !note.isPinned;
+        switchTab('notes');
+      }
+
+      // 2. BACKGROUND API FETCH TO MYSQL SERVER
+      fetch('./api/notes.php', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, toggle_pin: true })
+      }).catch(err => console.error('Background pin note failed:', err));
     }
 
     // --- FORM ACTIONS TO PHP BACKEND ---
@@ -1519,19 +1631,6 @@
         }
       } catch (err) {
         alert('Gagal menyimpan tugas: ' + err.message);
-      }
-    }
-
-    async function toggleTaskStatus(id, currentStatus) {
-      try {
-        await fetch('./api/tasks.php', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, completed: !currentStatus })
-        });
-        await fetchAppState();
-      } catch (err) {
-        console.error('Error toggle task status', err);
       }
     }
 
@@ -1583,19 +1682,6 @@
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = '<span>Simpan Catatan</span>';
-      }
-    }
-
-    async function togglePinNote(id) {
-      try {
-        await fetch('./api/notes.php', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, toggle_pin: true })
-        });
-        await fetchAppState();
-      } catch (err) {
-        console.error('Error toggle pin note', err);
       }
     }
 
@@ -1703,19 +1789,6 @@
         }
       } catch (err) {
         alert('Gagal menambahkan kebiasaan: ' + err.message);
-      }
-    }
-
-    async function toggleHabit(id) {
-      try {
-        await fetch('./api/habits.php', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id })
-        });
-        await fetchAppState();
-      } catch (err) {
-        console.error('Error toggle habit', err);
       }
     }
 
