@@ -238,7 +238,7 @@
     </div>
   </div>
 
-  <!-- 3. Add / Edit Note Modal (With Image Attachment Support!) -->
+  <!-- 3. Add / Edit Note Modal (With Multi-Image Upload & Preview Grid with Cross 'x' Buttons!) -->
   <div id="modal-add-note" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden opacity-0 transition-opacity duration-200">
     <div class="bg-white w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
@@ -249,14 +249,13 @@
       </div>
       <form id="form-note" onsubmit="handleSaveNote(event)" enctype="multipart/form-data" class="space-y-3">
         <input type="hidden" id="note-id" value="" />
-        <input type="hidden" id="note-existing-image-url" value="" />
+        <input type="hidden" id="note-target-folder-id" value="" />
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Folder Tujuan</label>
-          <select id="note-folder-select" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none">
-            <!-- Populated via JS -->
-          </select>
+        <!-- Target Folder Indicator (Auto assigned if inside folder, else dropdown) -->
+        <div id="folder-assignment-container">
+          <!-- Populated via JS -->
         </div>
+
         <div>
           <label class="block text-xs font-semibold text-slate-500 mb-1">Judul Catatan</label>
           <input type="text" id="note-title" required placeholder="Judul ringkasan atau materi..." class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue" />
@@ -266,12 +265,17 @@
           <textarea id="note-content" rows="4" required placeholder="Tuliskan materi, poin penting, atau rangkuman..." class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue resize-none"></textarea>
         </div>
         
-        <!-- Image Upload Input Field -->
+        <!-- Multi-Image Upload Field -->
         <div>
-          <label class="block text-xs font-semibold text-slate-500 mb-1">Lampirkan Foto / Gambar (Opsional)</label>
-          <input type="file" id="note-image-file" accept="image/*" onchange="previewSelectedImage(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
-          <div id="image-preview-container" class="mt-2 hidden">
-            <img id="image-preview-element" src="" class="h-28 w-full object-cover rounded-xl border border-slate-200" />
+          <div class="flex justify-between items-center mb-1">
+            <label class="block text-xs font-semibold text-slate-500">Lampirkan Foto / Gambar (Multi-Gambar Support)</label>
+            <span class="text-[10px] text-slate-400 italic">Bisa upload lebih dari 1 foto</span>
+          </div>
+          <input type="file" id="note-image-file" multiple accept="image/*" onchange="previewSelectedImages(event)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
+          
+          <!-- Interactive Preview Grid with Delete Cross (x) Buttons -->
+          <div id="image-preview-grid" class="mt-3 grid grid-cols-3 gap-2 hidden">
+            <!-- Rendered dynamically in JS -->
           </div>
         </div>
 
@@ -419,7 +423,7 @@
     </div>
   </div>
 
-  <!-- JavaScript Core Engine with Interactive Calendar & Controls -->
+  <!-- JavaScript Core Engine with Multi-Image Slideshow Carousel & Clean File Removal -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -427,7 +431,7 @@
       });
     }
 
-    // --- Application State Management ---
+    // Application State
     let appState = {
       activeTab: 'dashboard',
       tasks: [],
@@ -436,8 +440,8 @@
       transactions: [],
       habits: [],
       currentFolderId: null,
-      selectedPlannerDate: null, // Selected date filter
-      plannerWeekOffset: 0, // Calendar week navigation offset
+      selectedPlannerDate: null,
+      plannerWeekOffset: 0,
       plannerCategoryFilter: 'Semua',
       settings: {
         dailyBudget: 100000,
@@ -448,6 +452,14 @@
     };
 
     let pendingDeleteAction = null;
+
+    // Active image states for note creation/editing modal
+    let activeRetainedImages = []; // Array of existing URLs kept
+    let activeNewImageFiles = [];   // Array of File objects added
+    let activeRemovedImages = [];  // Array of URLs to be deleted from server
+
+    // Carousel Intervals Registry
+    let noteCarouselIntervals = {};
 
     // --- Fetch State from PHP MySQL Database ---
     async function fetchAppState() {
@@ -503,8 +515,17 @@
     }
     setInterval(updateClock, 1000);
 
+    // Clear active note slideshow timers when switching tabs
+    function clearAllCarouselTimers() {
+      Object.keys(noteCarouselIntervals).forEach(id => {
+        clearInterval(noteCarouselIntervals[id]);
+      });
+      noteCarouselIntervals = {};
+    }
+
     // --- Tab Switcher Logic ---
     function switchTab(tabName) {
+      clearAllCarouselTimers();
       appState.activeTab = tabName;
 
       const tabs = ['dashboard', 'planner', 'notes', 'money', 'progress'];
@@ -698,14 +719,13 @@
       `;
     }
 
-    // --- 2. PLANNER VIEW (INTERACTIVE CALENDAR & DATE FILTERING) ---
+    // --- 2. PLANNER VIEW ---
     function renderPlanner(container) {
-      // Calculate 7 days for current week offset
       const baseDate = new Date();
       baseDate.setDate(baseDate.getDate() + (appState.plannerWeekOffset * 7));
       
-      const dayOfWeek = baseDate.getDay(); // 0 is Sunday
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Shift to Monday
+      const dayOfWeek = baseDate.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
       
       const mondayDate = new Date(baseDate);
       mondayDate.setDate(baseDate.getDate() + mondayOffset);
@@ -726,10 +746,8 @@
         });
       }
 
-      // Current Month Year Label
       const monthYearLabel = mondayDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-      // Filter tasks by category & selected date
       let filteredTasks = appState.tasks;
 
       if (appState.plannerCategoryFilter !== 'Semua') {
@@ -744,7 +762,6 @@
 
       container.innerHTML = `
         <div class="space-y-4">
-          <!-- Calendar Card Header -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <span class="text-sm font-bold text-slate-900 capitalize">${monthYearLabel}</span>
@@ -761,7 +778,6 @@
               </div>
             </div>
 
-            <!-- Days Interactive Grid -->
             <div class="grid grid-cols-7 gap-1 text-center">
               ${daysOfWeek.map(day => `
                 <button onclick="selectPlannerDate('${day.isoDate}')" class="flex flex-col items-center py-2 rounded-2xl transition-all press-effect ${
@@ -775,7 +791,6 @@
             </div>
           </div>
 
-          <!-- Date Filter Indicator Banner -->
           ${appState.selectedPlannerDate ? `
             <div class="flex justify-between items-center p-2.5 bg-blue-50 rounded-2xl text-xs text-apple-blue px-4">
               <span class="font-medium">Filter Tanggal: <b>${appState.selectedPlannerDate}</b></span>
@@ -783,7 +798,6 @@
             </div>
           ` : ''}
 
-          <!-- Category Filter Pills -->
           <div class="flex space-x-1.5 overflow-x-auto hide-scrollbar pb-1">
             ${categories.map(cat => `
               <button onclick="selectPlannerCategory('${cat}')" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all press-effect ${
@@ -792,13 +806,11 @@
             `).join('')}
           </div>
 
-          <!-- Add Task Action Button -->
           <button onclick="openTaskModal()" class="w-full py-3 bg-apple-blue text-white rounded-2xl font-semibold text-xs shadow-md flex items-center justify-center space-x-2 press-effect">
             <i data-lucide="plus-circle" class="w-4 h-4"></i>
             <span>Tambah Jadwal / Tugas Baru</span>
           </button>
 
-          <!-- Tasks List -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Agenda (${filteredTasks.length})</h3>
@@ -846,7 +858,7 @@
 
     function selectPlannerDate(isoDate) {
       if (appState.selectedPlannerDate === isoDate) {
-        appState.selectedPlannerDate = null; // Toggle off filter
+        appState.selectedPlannerDate = null;
       } else {
         appState.selectedPlannerDate = isoDate;
       }
@@ -858,7 +870,7 @@
       switchTab('planner');
     }
 
-    // --- 3. NOTES VIEW (WITH EDITING & ROBUST PIN TOGGLING) ---
+    // --- 3. NOTES VIEW (WITH AUTOMATIC MULTI-IMAGE CAROUSEL SLIDESHOW) ---
     function renderNotes(container) {
       const currentFolder = appState.folders.find(f => Number(f.id) === Number(appState.currentFolderId));
       
@@ -867,12 +879,10 @@
         return Number(n.folderId) === Number(appState.currentFolderId);
       });
 
-      // Sort notes so pinned notes ALWAYS appear on top
       currentNotes.sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0));
 
       container.innerHTML = `
         <div class="space-y-4">
-          <!-- Folder Navigation Breadcrumbs -->
           <div class="p-3.5 rounded-2xl bg-white shadow-sm border border-slate-100 flex justify-between items-center">
             <div class="flex items-center space-x-2">
               ${appState.currentFolderId ? `
@@ -893,7 +903,6 @@
             </button>
           </div>
 
-          <!-- Folders Section -->
           ${!appState.currentFolderId ? `
             <div class="space-y-2">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Daftar Folder</span>
@@ -919,56 +928,113 @@
             </div>
           ` : ''}
 
-          <!-- Write Note Button -->
           <button onclick="openNoteModal()" class="w-full py-3 bg-amber-500 text-white rounded-2xl font-semibold text-xs shadow-md flex items-center justify-center space-x-2 press-effect">
             <i data-lucide="file-plus" class="w-4 h-4"></i>
             <span>Tulis Catatan Baru</span>
           </button>
 
-          <!-- Notes List -->
           <div class="space-y-3">
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1">Catatan Tersimpan (${currentNotes.length})</span>
             
-            ${currentNotes.length > 0 ? currentNotes.map(note => `
-              <div class="p-4 rounded-2xl bg-white shadow-sm border border-slate-100 space-y-2 relative">
-                <div class="flex justify-between items-start">
-                  <div class="flex items-center space-x-1.5">
-                    ${note.isPinned ? '<i data-lucide="pin" class="w-4 h-4 text-amber-500 fill-amber-500"></i>' : ''}
-                    <h4 class="text-xs font-bold text-slate-900">${note.title}</h4>
+            ${currentNotes.length > 0 ? currentNotes.map(note => {
+              const images = note.imageUrls && note.imageUrls.length > 0 ? note.imageUrls : (note.imageUrl ? [note.imageUrl] : []);
+              return `
+                <div class="p-4 rounded-2xl bg-white shadow-sm border border-slate-100 space-y-2 relative">
+                  <div class="flex justify-between items-start">
+                    <div class="flex items-center space-x-1.5">
+                      ${note.isPinned ? '<i data-lucide="pin" class="w-4 h-4 text-amber-500 fill-amber-500"></i>' : ''}
+                      <h4 class="text-xs font-bold text-slate-900">${note.title}</h4>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <button onclick="editNote(${note.id})" class="text-slate-400 hover:text-apple-blue press-effect p-1" title="Edit Catatan">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                      </button>
+                      <button onclick="requestDeleteNote(${note.id}, '${note.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect p-1" title="Hapus Catatan">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
                   </div>
-                  <div class="flex items-center space-x-2">
-                    <button onclick="editNote(${note.id})" class="text-slate-400 hover:text-apple-blue press-effect p-1" title="Edit Catatan">
-                      <i data-lucide="edit-3" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="requestDeleteNote(${note.id}, '${note.title.replace(/'/g, "\\'")}')" class="text-slate-300 hover:text-apple-red press-effect p-1" title="Hapus Catatan">
-                      <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                  </div>
-                </div>
-                
-                <p class="text-xs text-slate-600 line-clamp-3 whitespace-pre-line leading-relaxed">${note.content}</p>
-                
-                ${note.imageUrl ? `
-                  <div class="pt-1">
-                    <img src="${note.imageUrl}" onclick="viewFullImage('${note.imageUrl}')" alt="Attachment" class="h-32 w-full object-cover rounded-xl border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" />
-                  </div>
-                ` : ''}
+                  
+                  <p class="text-xs text-slate-600 line-clamp-3 whitespace-pre-line leading-relaxed">${note.content}</p>
+                  
+                  <!-- Multi-Image Carousel Slideshow -->
+                  ${images.length > 0 ? `
+                    <div class="pt-1 relative rounded-xl overflow-hidden group">
+                      <div id="note-carousel-img-container-${note.id}" class="h-40 w-full bg-slate-900">
+                        <img id="note-carousel-img-${note.id}" data-current-index="0" data-images='${JSON.stringify(images)}' src="${images[0]}" onclick="viewFullImage(this.src)" class="h-full w-full object-cover cursor-pointer transition-all duration-500" />
+                      </div>
+                      
+                      ${images.length > 1 ? `
+                        <!-- Carousel Badge & Control Dots -->
+                        <div class="absolute bottom-2 inset-x-0 flex justify-center items-center space-x-1.5 z-10 pointer-events-none">
+                          ${images.map((_, idx) => `
+                            <span id="carousel-dot-${note.id}-${idx}" class="w-2 h-2 rounded-full ${idx === 0 ? 'bg-white scale-125' : 'bg-white/50'} transition-all duration-300"></span>
+                          `).join('')}
+                        </div>
+                        <span class="absolute top-2 right-2 px-2 py-0.5 bg-black/60 text-white font-semibold text-[10px] rounded-full backdrop-blur-sm pointer-events-none">
+                          <span id="carousel-num-${note.id}">1</span> / ${images.length}
+                        </span>
+                      ` : ''}
+                    </div>
+                  ` : ''}
 
-                <div class="pt-2 flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-50">
-                  <span>${note.updatedAt ? new Date(note.updatedAt).toLocaleDateString('id-ID') : ''}</span>
-                  <button onclick="togglePinNote(${note.id})" class="text-amber-600 hover:text-amber-700 font-semibold px-2 py-1 bg-amber-50 rounded-lg press-effect flex items-center space-x-1">
-                    <i data-lucide="pin" class="w-3 h-3"></i>
-                    <span>${note.isPinned ? 'Lepas Pin' : 'Sematkan'}</span>
-                  </button>
+                  <div class="pt-2 flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-50">
+                    <span>${note.updatedAt ? new Date(note.updatedAt).toLocaleDateString('id-ID') : ''}</span>
+                    <button onclick="togglePinNote(${note.id})" class="text-amber-600 hover:text-amber-700 font-semibold px-2 py-1 bg-amber-50 rounded-lg press-effect flex items-center space-x-1">
+                      <i data-lucide="pin" class="w-3 h-3"></i>
+                      <span>${note.isPinned ? 'Lepas Pin' : 'Sematkan'}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            `).join('') : '<p class="text-xs text-slate-400 italic text-center py-6">Tidak ada catatan dalam folder ini.</p>'}
+              `;
+            }).join('') : '<p class="text-xs text-slate-400 italic text-center py-6">Tidak ada catatan dalam folder ini.</p>'}
           </div>
         </div>
       `;
+
+      // Start automatic carousel timers for notes with > 1 image
+      currentNotes.forEach(note => {
+        const images = note.imageUrls && note.imageUrls.length > 0 ? note.imageUrls : (note.imageUrl ? [note.imageUrl] : []);
+        if (images.length > 1) {
+          startNoteCarousel(note.id, images);
+        }
+      });
     }
 
-    // --- 4. MONEY VIEW (SAVINGS EDIT & DEPOSIT MODAL) ---
+    // Auto Slideshow Timer Function
+    function startNoteCarousel(noteId, images) {
+      if (noteCarouselIntervals[noteId]) clearInterval(noteCarouselIntervals[noteId]);
+      
+      let currentIndex = 0;
+      noteCarouselIntervals[noteId] = setInterval(() => {
+        currentIndex = (currentIndex + 1) % images.length;
+        const imgEl = document.getElementById(`note-carousel-img-${noteId}`);
+        const numEl = document.getElementById(`carousel-num-${noteId}`);
+        if (imgEl) {
+          imgEl.style.opacity = '0.4';
+          setTimeout(() => {
+            imgEl.src = images[currentIndex];
+            imgEl.style.opacity = '1';
+          }, 150);
+        }
+        if (numEl) {
+          numEl.textContent = currentIndex + 1;
+        }
+        // Update dots
+        images.forEach((_, idx) => {
+          const dot = document.getElementById(`carousel-dot-${noteId}-${idx}`);
+          if (dot) {
+            if (idx === currentIndex) {
+              dot.className = 'w-2 h-2 rounded-full bg-white scale-125 transition-all duration-300';
+            } else {
+              dot.className = 'w-2 h-2 rounded-full bg-white/50 transition-all duration-300';
+            }
+          }
+        });
+      }, 3000); // Cycle every 3 seconds
+    }
+
+    // --- 4. MONEY VIEW ---
     function renderMoney(container) {
       const todayStr = getTodayString();
       const totalIncome = appState.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
@@ -1010,7 +1076,6 @@
             </button>
           </div>
 
-          <!-- Savings Goal Progress Card -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div>
@@ -1031,7 +1096,6 @@
             </div>
           </div>
 
-          <!-- Recent Transactions -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Riwayat Transaksi</h3>
@@ -1182,21 +1246,18 @@
       openModal('modal-add-task');
     }
 
+    // --- NOTE MODAL SETUP & MULTI-IMAGE PREVIEW GRID WITH REMOVE ('x') BUTTONS ---
     function openNoteModal() {
       document.getElementById('form-note').reset();
       document.getElementById('note-id').value = '';
-      document.getElementById('note-existing-image-url').value = '';
       document.getElementById('note-modal-title').textContent = 'Catatan Baru';
-      document.getElementById('image-preview-container').classList.add('hidden');
-      document.getElementById('image-preview-element').src = '';
       
-      const folderSelect = document.getElementById('note-folder-select');
-      folderSelect.innerHTML = `
-        <option value="">(Tanpa Folder / Root)</option>
-        ${appState.folders.map(f => `
-          <option value="${f.id}" ${Number(f.id) === Number(appState.currentFolderId) ? 'selected' : ''}>${f.name}</option>
-        `).join('')}
-      `;
+      activeRetainedImages = [];
+      activeNewImageFiles = [];
+      activeRemovedImages = [];
+
+      setupFolderAssignmentUI(null);
+      renderImagePreviewGrid();
       openModal('modal-add-note');
     }
 
@@ -1204,50 +1265,128 @@
       const note = appState.notes.find(n => Number(n.id) === Number(id));
       if (!note) return;
 
+      document.getElementById('form-note').reset();
       document.getElementById('note-id').value = note.id;
       document.getElementById('note-modal-title').textContent = 'Edit Catatan';
       document.getElementById('note-title').value = note.title;
       document.getElementById('note-content').value = note.content;
       document.getElementById('note-pin').checked = note.isPinned;
 
-      const folderSelect = document.getElementById('note-folder-select');
-      folderSelect.innerHTML = `
-        <option value="">(Tanpa Folder / Root)</option>
-        ${appState.folders.map(f => `
-          <option value="${f.id}" ${Number(f.id) === Number(note.folderId) ? 'selected' : ''}>${f.name}</option>
-        `).join('')}
-      `;
+      activeRetainedImages = note.imageUrls ? [...note.imageUrls] : (note.imageUrl ? [note.imageUrl] : []);
+      activeNewImageFiles = [];
+      activeRemovedImages = [];
 
-      const previewContainer = document.getElementById('image-preview-container');
-      const previewImg = document.getElementById('image-preview-element');
-
-      if (note.imageUrl) {
-        document.getElementById('note-existing-image-url').value = note.imageUrl;
-        previewImg.src = note.imageUrl;
-        previewContainer.classList.remove('hidden');
-      } else {
-        document.getElementById('note-existing-image-url').value = '';
-        previewContainer.classList.add('hidden');
-      }
-
+      setupFolderAssignmentUI(note.folderId);
+      renderImagePreviewGrid();
       openModal('modal-add-note');
     }
 
-    function previewSelectedImage(event) {
-      const file = event.target.files[0];
-      const previewContainer = document.getElementById('image-preview-container');
-      const previewImg = document.getElementById('image-preview-element');
-      
-      if (file) {
+    // Auto folder assignment UI helper
+    function setupFolderAssignmentUI(targetFolderId) {
+      const container = document.getElementById('folder-assignment-container');
+      const activeId = targetFolderId !== null ? targetFolderId : appState.currentFolderId;
+      const currentFolder = appState.folders.find(f => Number(f.id) === Number(activeId));
+
+      document.getElementById('note-target-folder-id').value = activeId || '';
+
+      if (activeId && currentFolder) {
+        // Auto assigned inside active folder (no dropdown required)
+        container.innerHTML = `
+          <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200/60 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="folder" class="w-4 h-4 text-amber-600 fill-amber-200"></i>
+              <span class="text-xs font-bold text-amber-900">Folder Target: ${currentFolder.name}</span>
+            </div>
+            <span class="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md font-semibold">Otomatis Terpilih</span>
+          </div>
+        `;
+      } else {
+        // At root level: render folder selection dropdown
+        container.innerHTML = `
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Folder Tujuan</label>
+          <select id="note-folder-select" onchange="document.getElementById('note-target-folder-id').value=this.value" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none">
+            <option value="">(Tanpa Folder / Root)</option>
+            ${appState.folders.map(f => `
+              <option value="${f.id}" ${Number(f.id) === Number(activeId) ? 'selected' : ''}>${f.name}</option>
+            `).join('')}
+          </select>
+        `;
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // Triggered when user selects new images via file picker
+    function previewSelectedImages(event) {
+      const files = Array.from(event.target.files);
+      if (files.length > 0) {
+        activeNewImageFiles = [...activeNewImageFiles, ...files];
+      }
+      renderImagePreviewGrid();
+    }
+
+    // Render interactive preview grid with red 'x' remove buttons
+    function renderImagePreviewGrid() {
+      const grid = document.getElementById('image-preview-grid');
+      const totalImages = activeRetainedImages.length + activeNewImageFiles.length;
+
+      if (totalImages === 0) {
+        grid.classList.add('hidden');
+        grid.innerHTML = '';
+        return;
+      }
+
+      grid.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      // 1. Render retained existing images
+      activeRetainedImages.forEach((url, idx) => {
+        const item = document.createElement('div');
+        item.className = 'relative h-24 rounded-xl overflow-hidden border border-slate-200 shadow-sm group';
+        item.innerHTML = `
+          <img src="${url}" class="h-full w-full object-cover" />
+          <button type="button" onclick="removeRetainedImage(${idx})" class="absolute top-1 right-1 w-6 h-6 rounded-full bg-apple-red text-white flex items-center justify-center shadow-md press-effect" title="Hapus Gambar">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        `;
+        grid.appendChild(item);
+      });
+
+      // 2. Render new selected file previews
+      activeNewImageFiles.forEach((file, idx) => {
+        const item = document.createElement('div');
+        item.className = 'relative h-24 rounded-xl overflow-hidden border border-slate-200 shadow-sm group';
+        
         const reader = new FileReader();
         reader.onload = function(e) {
-          previewImg.src = e.target.result;
-          previewContainer.classList.remove('hidden');
+          item.innerHTML = `
+            <img src="${e.target.result}" class="h-full w-full object-cover" />
+            <button type="button" onclick="removeNewImageFile(${idx})" class="absolute top-1 right-1 w-6 h-6 rounded-full bg-apple-red text-white flex items-center justify-center shadow-md press-effect" title="Hapus Gambar">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          `;
+          if (window.lucide) lucide.createIcons();
         };
         reader.readAsDataURL(file);
-      } else {
-        previewContainer.classList.add('hidden');
+        grid.appendChild(item);
+      });
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // Remove existing image from server
+    function removeRetainedImage(index) {
+      const removedUrl = activeRetainedImages[index];
+      if (removedUrl) {
+        activeRemovedImages.push(removedUrl);
+        activeRetainedImages.splice(index, 1);
       }
+      renderImagePreviewGrid();
+    }
+
+    // Remove new un-uploaded file preview
+    function removeNewImageFile(index) {
+      activeNewImageFiles.splice(index, 1);
+      renderImagePreviewGrid();
     }
 
     function viewFullImage(url) {
@@ -1294,7 +1433,7 @@
     // --- DELETION CONFIRMATION DIALOG CONTROLLER ---
     function openConfirmDeleteModal(itemType, itemName, callbackAction) {
       document.getElementById('confirm-delete-title').textContent = `Hapus ${itemType}?`;
-      document.getElementById('confirm-delete-message').textContent = `Apakah Anda yakin ingin menghapus "${itemName}"? Data yang terhapus tidak dapat dikembalikan.`;
+      document.getElementById('confirm-delete-message').textContent = `Apakah Anda yakin ingin menghapus "${itemName}"? Data dan berkas gambar yang terhapus tidak dapat dikembalikan.`;
       pendingDeleteAction = callbackAction;
       openModal('modal-confirm-delete');
     }
@@ -1377,23 +1516,32 @@
     async function handleSaveNote(e) {
       e.preventDefault();
       const id = document.getElementById('note-id').value;
-      const existingImageUrl = document.getElementById('note-existing-image-url').value;
-      const folderId = document.getElementById('note-folder-select').value;
+      const folderId = document.getElementById('note-target-folder-id').value;
       const title = document.getElementById('note-title').value;
       const content = document.getElementById('note-content').value;
       const isPinned = document.getElementById('note-pin').checked;
-      const imageFile = document.getElementById('note-image-file').files[0];
 
       const formData = new FormData();
       if (id) formData.append('id', id);
-      if (existingImageUrl) formData.append('existing_image_url', existingImageUrl);
       if (folderId) formData.append('folder_id', folderId);
       formData.append('title', title);
       formData.append('content', content);
       formData.append('is_pinned', isPinned ? '1' : '0');
-      if (imageFile) {
-        formData.append('image', imageFile);
+
+      // Append retained images
+      if (activeRetainedImages.length > 0) {
+        formData.append('retained_image_urls', JSON.stringify(activeRetainedImages));
       }
+
+      // Append removed images for server file cleanup
+      if (activeRemovedImages.length > 0) {
+        formData.append('removed_image_urls', JSON.stringify(activeRemovedImages));
+      }
+
+      // Append new image files
+      activeNewImageFiles.forEach((file) => {
+        formData.append('images[]', file);
+      });
 
       const saveBtn = document.getElementById('btn-save-note');
       saveBtn.disabled = true;

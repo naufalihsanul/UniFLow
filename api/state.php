@@ -2,10 +2,9 @@
 require_once __DIR__ . '/config.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
-$userId = 1; // Default single-user or current active user ID
+$userId = 1;
 
 if ($method === 'GET') {
-    // Fetch full application state from MySQL
     try {
         // 1. Tasks
         $stmtTasks = $pdo->prepare("SELECT * FROM tasks WHERE user_id = ? ORDER BY date ASC, time ASC");
@@ -28,7 +27,16 @@ if ($method === 'GET') {
             $n['isPinned'] = (bool)$n['is_pinned'];
             $n['folderId'] = $n['folder_id'];
             $n['updatedAt'] = $n['updated_at'];
-            $n['imageUrl'] = $n['image_url'];
+            $n['imageUrls'] = [];
+            if (!empty($n['image_url'])) {
+                $decoded = json_decode($n['image_url'], true);
+                if (is_array($decoded)) {
+                    $n['imageUrls'] = $decoded;
+                } else {
+                    $n['imageUrls'] = array_filter(array_map('trim', explode(',', $n['image_url'])));
+                }
+            }
+            $n['imageUrl'] = !empty($n['imageUrls']) ? $n['imageUrls'][0] : null;
         }
 
         // 4. Transactions
