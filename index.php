@@ -287,7 +287,7 @@
     </div>
   </div>
 
-  <!-- 4. Add Transaction Modal (With Optional Receipt Photo Attachment!) -->
+  <!-- 4. Add Transaction Modal -->
   <div id="modal-add-transaction" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden opacity-0 transition-opacity duration-200">
     <div class="bg-white w-full max-w-[420px] rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
@@ -433,7 +433,7 @@
     </div>
   </div>
 
-  <!-- JavaScript Core Engine with Optimistic Instant UI (0ms delay) & Dashboard Quick Notes -->
+  <!-- JavaScript Core Engine -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -450,7 +450,7 @@
       habits: [],
       currentFolderId: null,
       selectedPlannerDate: null,
-      plannerWeekOffset: 0,
+      plannerMonthOffset: 0, // Month navigation offset
       plannerCategoryFilter: 'Semua',
       settings: {
         dailyBudget: 100000,
@@ -572,7 +572,7 @@
       if (window.lucide) lucide.createIcons();
     }
 
-    // --- 1. DASHBOARD VIEW (WITH LATEST NOTES & QUICK IDEAS WIDGET!) ---
+    // --- 1. DASHBOARD VIEW ---
     function renderDashboard(container) {
       const todayStr = getTodayString();
       const todayExpenses = appState.transactions
@@ -608,7 +608,6 @@
       const upcomingTasks = appState.tasks.filter(t => !t.completed).slice(0, 3);
       const nextSchedule = upcomingTasks[0];
 
-      // Get latest 2 notes for Dashboard Quick Ideas Widget
       const latestNotes = [...appState.notes]
         .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
         .slice(0, 2);
@@ -640,7 +639,7 @@
             `}
           </div>
 
-          <!-- NEW WIDGET: Catatan Terbaru & Quick Ideas -->
+          <!-- Catatan Terbaru Widget -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <div class="flex items-center space-x-2">
@@ -764,35 +763,76 @@
       `;
     }
 
-    // --- 2. PLANNER VIEW ---
+    // --- 2. PLANNER VIEW (WITH FULL 1-MONTH CALENDAR GRID & RED TASK INDICATORS!) ---
     function renderPlanner(container) {
-      const baseDate = new Date();
-      baseDate.setDate(baseDate.getDate() + (appState.plannerWeekOffset * 7));
-      
-      const dayOfWeek = baseDate.getDay();
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      
-      const mondayDate = new Date(baseDate);
-      mondayDate.setDate(baseDate.getDate() + mondayOffset);
+      const now = new Date();
+      // Calculate target year & month from month offset
+      const targetDate = new Date(now.getFullYear(), now.getMonth() + appState.plannerMonthOffset, 1);
+      const year = targetDate.getFullYear();
+      const month = targetDate.getMonth();
 
-      const daysOfWeek = [];
-      const dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+      const monthYearLabel = targetDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(mondayDate);
-        d.setDate(mondayDate.getDate() + i);
-        const isoDate = d.toISOString().split('T')[0];
-        daysOfWeek.push({
+      // First day of month (0 = Sun, 1 = Mon, ..., 6 = Sat)
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      // Convert to Monday-first (0 = Mon, 1 = Tue, ..., 6 = Sun)
+      const mondayFirstIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+
+      // Total days in target month
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      // Total days in previous month (for padding)
+      const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+      const calendarGridCells = [];
+
+      // 1. Padding days from previous month
+      for (let i = mondayFirstIndex - 1; i >= 0; i--) {
+        const dayNum = prevMonthTotalDays - i;
+        const prevMonthDate = new Date(year, month - 1, dayNum);
+        const isoDate = prevMonthDate.toISOString().split('T')[0];
+        calendarGridCells.push({
+          dayNumber: dayNum,
           isoDate,
-          dayName: dayNames[i],
-          dayNumber: d.getDate(),
+          isCurrentMonth: false,
           isToday: isoDate === getTodayString(),
           isSelected: isoDate === appState.selectedPlannerDate
         });
       }
 
-      const monthYearLabel = mondayDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+      // 2. Days of current target month
+      for (let d = 1; d <= totalDays; d++) {
+        const currentMonthDate = new Date(year, month, d);
+        // Format ISO date string YYYY-MM-DD
+        const yearStr = currentMonthDate.getFullYear();
+        const monthStr = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(d).padStart(2, '0');
+        const isoDate = `${yearStr}-${monthStr}-${dayStr}`;
 
+        calendarGridCells.push({
+          dayNumber: d,
+          isoDate,
+          isCurrentMonth: true,
+          isToday: isoDate === getTodayString(),
+          isSelected: isoDate === appState.selectedPlannerDate
+        });
+      }
+
+      // 3. Padding days for next month to complete the 7-column grid
+      const remainingCells = (7 - (calendarGridCells.length % 7)) % 7;
+      for (let d = 1; d <= remainingCells; d++) {
+        const nextMonthDate = new Date(year, month + 1, d);
+        const isoDate = nextMonthDate.toISOString().split('T')[0];
+        calendarGridCells.push({
+          dayNumber: d,
+          isoDate,
+          isCurrentMonth: false,
+          isToday: isoDate === getTodayString(),
+          isSelected: isoDate === appState.selectedPlannerDate
+        });
+      }
+
+      // Filter tasks by category & selected date
       let filteredTasks = appState.tasks;
 
       if (appState.plannerCategoryFilter !== 'Semua') {
@@ -807,35 +847,80 @@
 
       container.innerHTML = `
         <div class="space-y-4">
+          <!-- FULL 1-MONTH CALENDAR GRID -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
-            <div class="flex justify-between items-center">
+            <!-- Month Header Navigation -->
+            <div class="flex justify-between items-center mb-1">
               <span class="text-sm font-bold text-slate-900 capitalize">${monthYearLabel}</span>
               <div class="flex items-center space-x-1">
-                <button onclick="changePlannerWeek(-1)" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center press-effect text-slate-700 hover:bg-slate-200">
+                <button onclick="changePlannerMonth(-1)" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center press-effect text-slate-700 hover:bg-slate-200" title="Bulan Sebelumnya">
                   <i data-lucide="chevron-left" class="w-4 h-4"></i>
                 </button>
-                <button onclick="resetPlannerWeek()" class="px-2 py-1 rounded-full bg-blue-50 text-apple-blue font-bold text-[10px] press-effect">
-                  Hari Ini
+                <button onclick="resetPlannerMonth()" class="px-2.5 py-1 rounded-full bg-blue-50 text-apple-blue font-bold text-[10px] press-effect">
+                  Bulan Ini
                 </button>
-                <button onclick="changePlannerWeek(1)" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center press-effect text-slate-700 hover:bg-slate-200">
+                <button onclick="changePlannerMonth(1)" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center press-effect text-slate-700 hover:bg-slate-200" title="Bulan Berikutnya">
                   <i data-lucide="chevron-right" class="w-4 h-4"></i>
                 </button>
               </div>
             </div>
 
+            <!-- Day Name Headers (Monday to Sunday) -->
+            <div class="grid grid-cols-7 gap-1 text-center font-bold text-[10px] text-slate-400 py-1 border-b border-slate-100">
+              <span>Sen</span>
+              <span>Sel</span>
+              <span>Rab</span>
+              <span>Kam</span>
+              <span>Jum</span>
+              <span>Sab</span>
+              <span>Min</span>
+            </div>
+
+            <!-- Full Month Grid Cells (7 Columns x 5-6 Rows) -->
             <div class="grid grid-cols-7 gap-1 text-center">
-              ${daysOfWeek.map(day => `
-                <button onclick="selectPlannerDate('${day.isoDate}')" class="flex flex-col items-center py-2 rounded-2xl transition-all press-effect ${
-                  day.isSelected ? 'bg-slate-900 text-white shadow-md font-bold scale-105' :
-                  day.isToday ? 'bg-apple-blue text-white font-bold' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                }">
-                  <span class="text-[10px] opacity-70">${day.dayName}</span>
-                  <span class="text-xs font-bold mt-1">${day.dayNumber}</span>
-                </button>
-              `).join('')}
+              ${calendarGridCells.map(cell => {
+                // Find tasks scheduled on this date
+                const dayTasks = appState.tasks.filter(t => t.date === cell.isoDate);
+                const incompleteTasks = dayTasks.filter(t => !t.completed);
+                const hasHighPriority = incompleteTasks.some(t => t.priority === 'Tinggi');
+
+                return `
+                  <button onclick="selectPlannerDate('${cell.isoDate}')" class="relative flex flex-col items-center justify-center h-10 rounded-2xl transition-all press-effect ${
+                    cell.isSelected ? 'bg-slate-900 text-white font-bold shadow-md scale-105' :
+                    cell.isToday ? 'bg-apple-blue text-white font-bold' :
+                    cell.isCurrentMonth ? 'bg-slate-50 text-slate-700 hover:bg-slate-100' : 'bg-slate-50/40 text-slate-300'
+                  }">
+                    <span class="text-xs font-semibold">${cell.dayNumber}</span>
+                    
+                    <!-- Visual Red/Blue Task Indicator Dots -->
+                    ${dayTasks.length > 0 ? `
+                      <div class="absolute bottom-1 flex items-center space-x-0.5">
+                        ${incompleteTasks.length > 0 ? `
+                          <span class="w-1.5 h-1.5 rounded-full ${hasHighPriority ? 'bg-apple-red animate-pulse' : 'bg-amber-400'}"></span>
+                        ` : `
+                          <span class="w-1.5 h-1.5 rounded-full bg-apple-green"></span>
+                        `}
+                      </div>
+                    ` : ''}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Legend Info for Task Indicators -->
+            <div class="flex items-center justify-center space-x-4 text-[10px] text-slate-400 pt-2 border-t border-slate-50">
+              <div class="flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-apple-red"></span>
+                <span>Tugas Prioritas / Ada Tugas</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-apple-green"></span>
+                <span>Tugas Selesai</span>
+              </div>
             </div>
           </div>
 
+          <!-- Date Filter Indicator Banner -->
           ${appState.selectedPlannerDate ? `
             <div class="flex justify-between items-center p-2.5 bg-blue-50 rounded-2xl text-xs text-apple-blue px-4">
               <span class="font-medium">Filter Tanggal: <b>${appState.selectedPlannerDate}</b></span>
@@ -843,6 +928,7 @@
             </div>
           ` : ''}
 
+          <!-- Category Filter Pills -->
           <div class="flex space-x-1.5 overflow-x-auto hide-scrollbar pb-1">
             ${categories.map(cat => `
               <button onclick="selectPlannerCategory('${cat}')" class="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all press-effect ${
@@ -851,11 +937,13 @@
             `).join('')}
           </div>
 
+          <!-- Add Task Action Button -->
           <button onclick="openTaskModal()" class="w-full py-3 bg-apple-blue text-white rounded-2xl font-semibold text-xs shadow-md flex items-center justify-center space-x-2 press-effect">
             <i data-lucide="plus-circle" class="w-4 h-4"></i>
             <span>Tambah Jadwal / Tugas Baru</span>
           </button>
 
+          <!-- Tasks List -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Agenda (${filteredTasks.length})</h3>
@@ -890,13 +978,13 @@
       `;
     }
 
-    function changePlannerWeek(offset) {
-      appState.plannerWeekOffset += offset;
+    function changePlannerMonth(offset) {
+      appState.plannerMonthOffset += offset;
       switchTab('planner');
     }
 
-    function resetPlannerWeek() {
-      appState.plannerWeekOffset = 0;
+    function resetPlannerMonth() {
+      appState.plannerMonthOffset = 0;
       appState.selectedPlannerDate = getTodayString();
       switchTab('planner');
     }
@@ -1513,7 +1601,6 @@
 
     function requestDeleteFolder(id, name) {
       openConfirmDeleteModal('Folder', name, async () => {
-        // Optimistic UI delete
         appState.folders = appState.folders.filter(f => Number(f.id) !== Number(id));
         appState.notes = appState.notes.filter(n => Number(n.folderId) !== Number(id));
         switchTab(appState.activeTab);
@@ -1524,7 +1611,6 @@
 
     function requestDeleteTask(id, title) {
       openConfirmDeleteModal('Tugas', title, async () => {
-        // Optimistic UI delete
         appState.tasks = appState.tasks.filter(t => Number(t.id) !== Number(id));
         switchTab(appState.activeTab);
 
@@ -1534,7 +1620,6 @@
 
     function requestDeleteNote(id, title) {
       openConfirmDeleteModal('Catatan', title, async () => {
-        // Optimistic UI delete
         appState.notes = appState.notes.filter(n => Number(n.id) !== Number(id));
         switchTab(appState.activeTab);
 
@@ -1544,7 +1629,6 @@
 
     function requestDeleteTransaction(id, title) {
       openConfirmDeleteModal('Transaksi', title, async () => {
-        // Optimistic UI delete
         appState.transactions = appState.transactions.filter(t => Number(t.id) !== Number(id));
         switchTab(appState.activeTab);
 
@@ -1552,10 +1636,8 @@
       });
     }
 
-    // --- OPTIMISTIC UI INSTANT TOGGLES (0ms DELAY!) ---
-
+    // --- OPTIMISTIC UI INSTANT TOGGLES ---
     function toggleHabit(id) {
-      // 1. OPTIMISTIC INSTANT UPDATE (0ms visual delay!)
       const habit = appState.habits.find(h => Number(h.id) === Number(id));
       if (habit) {
         habit.completedToday = !habit.completedToday;
@@ -1564,11 +1646,9 @@
         } else {
           habit.streak = Math.max(0, habit.streak - 1);
         }
-        // Re-render UI immediately!
         switchTab(appState.activeTab);
       }
 
-      // 2. BACKGROUND API FETCH TO MYSQL SERVER
       fetch('./api/habits.php', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1577,14 +1657,12 @@
     }
 
     function toggleTaskStatus(id, currentStatus) {
-      // 1. OPTIMISTIC INSTANT UPDATE (0ms visual delay!)
       const task = appState.tasks.find(t => Number(t.id) === Number(id));
       if (task) {
         task.completed = !currentStatus;
         switchTab(appState.activeTab);
       }
 
-      // 2. BACKGROUND API FETCH TO MYSQL SERVER
       fetch('./api/tasks.php', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1593,14 +1671,12 @@
     }
 
     function togglePinNote(id) {
-      // 1. OPTIMISTIC INSTANT UPDATE (0ms visual delay!)
       const note = appState.notes.find(n => Number(n.id) === Number(id));
       if (note) {
         note.isPinned = !note.isPinned;
         switchTab('notes');
       }
 
-      // 2. BACKGROUND API FETCH TO MYSQL SERVER
       fetch('./api/notes.php', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
