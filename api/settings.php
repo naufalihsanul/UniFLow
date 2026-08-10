@@ -27,6 +27,14 @@ if ($method === 'GET') {
 
 if ($method === 'POST' || $method === 'PUT') {
     $data = getRequestBody();
+
+    if (isset($data['depositAmount'])) {
+        $deposit = (float)$data['depositAmount'];
+        $stmt = $pdo->prepare("UPDATE settings SET savings_current = savings_current + ? WHERE user_id = ?");
+        $stmt->execute([$deposit, $userId]);
+        jsonResponse(['success' => true, 'message' => 'Setoran tabungan berhasil ditambahkan!']);
+    }
+
     $dailyBudget = (float)($data['dailyBudget'] ?? 100000);
     $savingsTarget = (float)($data['savingsTarget'] ?? 5000000);
     $savingsCurrent = (float)($data['savingsCurrent'] ?? 2150000);

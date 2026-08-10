@@ -16,6 +16,7 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     $data = getRequestBody();
+    $id = $data['id'] ?? null;
     $title = trim($data['title'] ?? '');
     $category = $data['category'] ?? 'Kuliah';
     $priority = $data['priority'] ?? 'Sedang';
@@ -26,40 +27,69 @@ if ($method === 'POST') {
         jsonResponse(['success' => false, 'message' => 'Judul kegiatan wajib diisi'], 400);
     }
 
-    $stmt = $pdo->prepare("INSERT INTO tasks (user_id, title, category, priority, date, time, completed) VALUES (?, ?, ?, ?, ?, ?, 0)");
-    $stmt->execute([$userId, $title, $category, $priority, $date, $time]);
-    $id = $pdo->lastInsertId();
+    if ($id) {
+        // UPDATE existing task
+        $stmt = $pdo->prepare("UPDATE tasks SET title = ?, category = ?, priority = ?, date = ?, time = ? WHERE id = ? AND user_id = ?");
+        $stmt->execute([$title, $category, $priority, $date, $time, $id, $userId]);
 
-    jsonResponse([
-        'success' => true,
-        'message' => 'Tugas berhasil disimpan',
-        'data' => [
-            'id' => $id,
-            'title' => $title,
-            'category' => $category,
-            'priority' => $priority,
-            'date' => $date,
-            'time' => $time,
-            'completed' => false
-        ]
-    ]);
+        jsonResponse([
+            'success' => true,
+            'message' => 'Tugas berhasil diperbarui',
+            'data' => [
+                'id' => $id,
+                'title' => $title,
+                'category' => $category,
+                'priority' => $priority,
+                'date' => $date,
+                'time' => $time
+            ]
+        ]);
+    } else {
+        // INSERT new task
+        $stmt = $pdo->prepare("INSERT INTO tasks (user_id, title, category, priority, date, time, completed) VALUES (?, ?, ?, ?, ?, ?, 0)");
+        $stmt->execute([$userId, $title, $category, $priority, $date, $time]);
+        $newId = $pdo->lastInsertId();
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Tugas berhasil disimpan',
+            'data' => [
+                'id' => $newId,
+                'title' => $title,
+                'category' => $category,
+                'priority' => $priority,
+                'date' => $date,
+                'time' => $time,
+                'completed' => false
+            ]
+        ]);
+    }
 }
 
 if ($method === 'PUT') {
     $data = getRequestBody();
     $id = $data['id'] ?? null;
-    $completed = isset($data['completed']) ? ($data['completed'] ? 1 : 0) : null;
 
     if (!$id) {
         jsonResponse(['success' => false, 'message' => 'ID Tugas tidak ditemukan'], 400);
     }
 
-    if ($completed !== null) {
+    if (isset($data['completed'])) {
+        $completed = $data['completed'] ? 1 : 0;
         $stmt = $pdo->prepare("UPDATE tasks SET completed = ? WHERE id = ? AND user_id = ?");
         $stmt->execute([$completed, $id, $userId]);
+    } else {
+        $title = trim($data['title'] ?? '');
+        $category = $data['category'] ?? 'Kuliah';
+        $priority = $data['priority'] ?? 'Sedang';
+        $date = $data['date'] ?? date('Y-m-d');
+        $time = $data['time'] ?? date('H:i:s');
+
+        $stmt = $pdo->prepare("UPDATE tasks SET title = ?, category = ?, priority = ?, date = ?, time = ? WHERE id = ? AND user_id = ?");
+        $stmt->execute([$title, $category, $priority, $date, $time, $id, $userId]);
     }
 
-    jsonResponse(['success' => true, 'message' => 'Status tugas diperbarui']);
+    jsonResponse(['success' => true, 'message' => 'Tugas berhasil diperbarui']);
 }
 
 if ($method === 'DELETE') {

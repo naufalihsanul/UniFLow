@@ -4,7 +4,6 @@ require_once __DIR__ . '/config.php';
 $method = $_SERVER['REQUEST_METHOD'];
 $userId = 1;
 
-// Helper to handle image uploads
 function handleImageUpload() {
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $uploadDir = __DIR__ . '/../uploads/';
@@ -51,15 +50,15 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    // Check if multipart form data or json
+    $id = $_POST['id'] ?? null;
     $folderId = $_POST['folder_id'] ?? null;
     $title = trim($_POST['title'] ?? '');
     $content = trim($_POST['content'] ?? '');
     $isPinned = isset($_POST['is_pinned']) ? ($_POST['is_pinned'] === 'true' || $_POST['is_pinned'] === '1' ? 1 : 0) : 0;
 
     if (empty($title)) {
-        // Fallback for JSON body
         $json = getRequestBody();
+        $id = $json['id'] ?? $id;
         $folderId = $json['folder_id'] ?? $folderId;
         $title = trim($json['title'] ?? '');
         $content = trim($json['content'] ?? '');
@@ -71,27 +70,53 @@ if ($method === 'POST') {
     }
 
     $imageUrl = handleImageUpload();
-    if (!$imageUrl && isset($_POST['existing_image_url'])) {
-        $imageUrl = $_POST['existing_image_url'];
+
+    if ($id) {
+        // UPDATE existing note
+        if (!$imageUrl && isset($_POST['existing_image_url'])) {
+            $imageUrl = $_POST['existing_image_url'];
+        }
+        if ($imageUrl !== null) {
+            $stmt = $pdo->prepare("UPDATE notes SET folder_id = ?, title = ?, content = ?, image_url = ?, is_pinned = ?, updated_at = NOW() WHERE id = ? AND user_id = ?");
+            $stmt->execute([$folderId ?: null, $title, $content, $imageUrl, $isPinned, $id, $userId]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE notes SET folder_id = ?, title = ?, content = ?, is_pinned = ?, updated_at = NOW() WHERE id = ? AND user_id = ?");
+            $stmt->execute([$folderId ?: null, $title, $content, $isPinned, $id, $userId]);
+        }
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Catatan berhasil diperbarui',
+            'data' => [
+                'id' => $id,
+                'folderId' => $folderId,
+                'title' => $title,
+                'content' => $content,
+                'imageUrl' => $imageUrl,
+                'isPinned' => (bool)$isPinned,
+                'updatedAt' => date('Y-m-d H:i:s')
+            ]
+        ]);
+    } else {
+        // CREATE new note
+        $stmt = $pdo->prepare("INSERT INTO notes (user_id, folder_id, title, content, image_url, is_pinned) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$userId, $folderId ?: null, $title, $content, $imageUrl, $isPinned]);
+        $newId = $pdo->lastInsertId();
+
+        jsonResponse([
+            'success' => true,
+            'message' => 'Catatan berhasil disimpan',
+            'data' => [
+                'id' => $newId,
+                'folderId' => $folderId,
+                'title' => $title,
+                'content' => $content,
+                'imageUrl' => $imageUrl,
+                'isPinned' => (bool)$isPinned,
+                'updatedAt' => date('Y-m-d H:i:s')
+            ]
+        ]);
     }
-
-    $stmt = $pdo->prepare("INSERT INTO notes (user_id, folder_id, title, content, image_url, is_pinned) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$userId, $folderId ?: null, $title, $content, $imageUrl, $isPinned]);
-    $id = $pdo->lastInsertId();
-
-    jsonResponse([
-        'success' => true,
-        'message' => 'Catatan berhasil disimpan',
-        'data' => [
-            'id' => $id,
-            'folderId' => $folderId,
-            'title' => $title,
-            'content' => $content,
-            'imageUrl' => $imageUrl,
-            'isPinned' => (bool)$isPinned,
-            'updatedAt' => date('Y-m-d H:i:s')
-        ]
-    ]);
 }
 
 if ($method === 'PUT') {
@@ -103,11 +128,12 @@ if ($method === 'PUT') {
     }
 
     if (isset($data['toggle_pin'])) {
-        $stmt = $pdo->prepare("UPDATE notes SET is_pinned = NOT is_pinned WHERE id = ? AND user_id = ?");
+        // Robust toggle pin SQL query
+        $stmt = $pdo->prepare("UPDATE notes SET is_pinned = IF(is_pinned = 1, 0, 1), updated_at = NOW() WHERE id = ? AND user_id = ?");
         $stmt->execute([$id, $userId]);
     }
 
-    jsonResponse(['success' => true, 'message' => 'Catatan diperbarui']);
+    jsonResponse(['success' => true, 'message' => 'Status pin catatan diperbarui']);
 }
 
 if ($method === 'DELETE') {
@@ -116,7 +142,6 @@ if ($method === 'DELETE') {
         jsonResponse(['success' => false, 'message' => 'ID Catatan wajib disertakan'], 400);
     }
 
-    // Optionally delete uploaded image file
     $stmtSelect = $pdo->prepare("SELECT image_url FROM notes WHERE id = ? AND user_id = ?");
     $stmtSelect->execute([$id, $userId]);
     $note = $stmtSelect->fetch();
