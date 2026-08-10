@@ -217,9 +217,9 @@
           <div>
             <label class="block text-xs font-semibold text-slate-500 mb-1">Prioritas</label>
             <select id="task-priority" class="w-full px-3 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-apple-blue">
-              <option value="Tinggi">Tinggi 💀</option>
-              <option value="Sedang" selected>Sedang</option>
-              <option value="Rendah">Rendah</option>
+              <option value="Tinggi">Tinggi 💀 (Merah)</option>
+              <option value="Sedang" selected>Sedang (Oranye)</option>
+              <option value="Rendah">Rendah (Abu-Abu)</option>
             </select>
           </div>
         </div>
@@ -508,14 +508,14 @@
       };
     }
 
-    // PRIORITY TEXT FORMATTER (💀 Icon specifically for High Priority!)
-    function getPriorityText(priority) {
+    // PRIORITY TEXT & COLOR FORMATTER (No 'Prioritas:' text prefix, single line fitting!)
+    function getPriorityTextHTML(priority) {
       if (priority === 'Tinggi') {
-        return '💀 Tinggi';
+        return `<span class="text-apple-red font-bold">💀 Tinggi</span>`;
       } else if (priority === 'Rendah') {
-        return 'Rendah';
+        return `<span class="text-slate-500 font-medium">Rendah</span>`;
       } else {
-        return 'Sedang';
+        return `<span class="text-amber-600 font-semibold">Sedang</span>`;
       }
     }
 
@@ -699,7 +699,7 @@
 
           ${alertBannerHTML}
 
-          <!-- 2. Next Schedule Card (💀 Icon for High Priority) -->
+          <!-- 2. Next Schedule Card -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-2">
             <div class="flex justify-between items-center">
               <span class="text-[10px] font-bold uppercase tracking-wider text-apple-blue bg-blue-50 px-2.5 py-1 rounded-full">Agenda Berikutnya</span>
@@ -709,7 +709,7 @@
               <h3 class="text-base font-bold text-slate-800">${nextSchedule.title}</h3>
               <div class="flex items-center space-x-2 text-xs text-slate-500">
                 <span class="px-2.5 py-0.5 rounded-full font-bold text-[10px] ${getCategoryColor(nextSchedule.category).badge}">${nextSchedule.category}</span>
-                <span class="text-[11px] text-slate-500">Prioritas: <b class="${nextSchedule.priority === 'Tinggi' ? 'text-apple-red font-bold' : ''}">${getPriorityText(nextSchedule.priority)}</b></span>
+                <span class="text-[11px]">${getPriorityTextHTML(nextSchedule.priority)}</span>
               </div>
             ` : `
               <p class="text-xs text-slate-400 italic py-2">Tidak ada agenda mendesak hari ini. Bebas!</p>
@@ -809,7 +809,7 @@
             </button>
           </div>
 
-          <!-- 7. Today's Tasks Preview (💀 Icon for High Priority) -->
+          <!-- 7. Today's Tasks Preview -->
           <div class="p-4 rounded-3xl bg-white shadow-sm border border-slate-100 space-y-3">
             <div class="flex justify-between items-center">
               <h3 class="text-sm font-bold text-slate-800">Tugas & Agenda Mendatang</h3>
@@ -818,16 +818,16 @@
             <div class="space-y-2">
               ${upcomingTasks.length > 0 ? upcomingTasks.map(task => `
                 <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl">
-                  <div class="flex items-center space-x-3">
+                  <div class="flex items-center space-x-3 min-w-0 flex-1">
                     <button onclick="toggleTaskStatus(${task.id}, ${task.completed})" class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center press-effect flex-shrink-0">
                       ${task.completed ? '<div class="w-3 h-3 bg-apple-blue rounded-full"></div>' : ''}
                     </button>
-                    <div>
-                      <p class="text-xs font-semibold text-slate-800 ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</p>
-                      <p class="text-[10px] text-slate-400 mt-0.5">${task.time} • Prioritas: <span class="${task.priority === 'Tinggi' ? 'text-apple-red font-bold' : ''}">${getPriorityText(task.priority)}</span></p>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-xs font-semibold text-slate-800 truncate ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</p>
+                      <p class="text-[10px] text-slate-400 mt-0.5 truncate">${task.time} • ${getPriorityTextHTML(task.priority)}</p>
                     </div>
                   </div>
-                  <div class="flex items-center space-x-1.5 flex-shrink-0">
+                  <div class="flex items-center space-x-1.5 flex-shrink-0 pl-1">
                     <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold ${getCategoryColor(task.category).badge}">${task.category}</span>
                   </div>
                 </div>
@@ -860,7 +860,7 @@
       `;
     }
 
-    // --- 2. PLANNER VIEW (💀 Icon for High Priority in Subtitle) ---
+    // --- 2. PLANNER VIEW ---
     function renderPlanner(container) {
       const now = new Date();
       const targetDate = new Date(now.getFullYear(), now.getMonth() + appState.plannerMonthOffset, 1);
@@ -1047,7 +1047,7 @@
             <span>Tambah Jadwal / Tugas Baru</span>
           </button>
 
-          <!-- PLANNER TASK LIST (💀 Icon for High Priority) -->
+          <!-- PLANNER TASK LIST (Clean Colorized Priority without "Prioritas:" prefix!) -->
           <div class="space-y-2">
             <div class="flex justify-between items-center px-1">
               <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Daftar Agenda (${filteredTasks.length})</h3>
@@ -1061,7 +1061,7 @@
                   </button>
                   <div class="min-w-0 flex-1">
                     <h4 class="text-xs font-bold text-slate-800 truncate ${task.completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
-                    <p class="text-[10px] text-slate-400 mt-0.5">${task.date} @ ${task.time} • Prioritas: <span class="font-medium ${task.priority === 'Tinggi' ? 'text-apple-red font-bold' : 'text-slate-600'}">${getPriorityText(task.priority)}</span></p>
+                    <p class="text-[10px] text-slate-400 mt-0.5 truncate">${task.date} @ ${task.time} • ${getPriorityTextHTML(task.priority)}</p>
                   </div>
                 </div>
                 
@@ -1875,7 +1875,6 @@
         });
         const res = await response.json();
         if (res.success && !id && res.data && res.data.id) {
-          // Update temporary ID with actual MySQL ID
           const lastIndex = appState.tasks.length - 1;
           if (lastIndex >= 0 && typeof appState.tasks[lastIndex].id === 'number' && appState.tasks[lastIndex].id > 1000000000000) {
             appState.tasks[lastIndex].id = res.data.id;
