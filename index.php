@@ -978,7 +978,7 @@
                         ` : activeCategories.slice(0, 3).map(cat => `
                           <span class="w-1.5 h-1.5 rounded-full ${getCategoryColor(cat).dotBg}"></span>
                         `).join('')}
-                        ${hasHighPriority ? '<span class="w-1.5 h-1.5 rounded-full bg-apple-red animate-pulse" title="Prioritas Tinggi"></span>' : ''}
+                        ${hasHighPriority ? '<span class="text-[9px] leading-none select-none" title="Prioritas Tinggi">💀</span>' : ''}
                       </div>
                     ` : ''}
                   </button>
@@ -1007,14 +1007,10 @@
                   <span>Pribadi</span>
                 </div>
               </div>
-              <div class="flex items-center justify-center space-x-3 text-[10px] text-slate-500 pt-1">
-                <div class="flex items-center space-x-1">
-                  <span class="w-2 h-2 rounded-full bg-apple-red animate-pulse"></span>
-                  <span class="font-semibold text-apple-red">🔥 Prioritas Tinggi</span>
-                </div>
-                <div class="flex items-center space-x-1">
-                  <span class="w-2 h-2 rounded-full bg-apple-green"></span>
-                  <span>Selesai</span>
+              <div class="flex items-center justify-center text-[10px] text-slate-600 pt-1">
+                <div class="flex items-center space-x-1.5 font-semibold">
+                  <span class="text-xs">💀</span>
+                  <span class="text-slate-700">Prioritas Tinggi</span>
                 </div>
               </div>
             </div>
