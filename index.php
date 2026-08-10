@@ -965,8 +965,8 @@
 
                 return `
                   <button onclick="selectPlannerDate('${cell.isoDate}')" class="relative flex flex-col items-center justify-center h-10 rounded-2xl transition-all press-effect ${
-                    cell.isSelected ? 'bg-slate-900 text-white font-bold shadow-md scale-105' :
-                    cell.isToday ? 'bg-apple-blue text-white font-bold' :
+                    cell.isSelected ? 'bg-slate-900 text-white font-bold shadow-md scale-105 ring-2 ring-blue-500' :
+                    cell.isToday ? 'bg-slate-900 text-white font-bold shadow-md ring-2 ring-blue-400' :
                     cell.isCurrentMonth ? 'bg-slate-50 text-slate-700 hover:bg-slate-100' : 'bg-slate-50/40 text-slate-300'
                   }">
                     <span class="text-xs font-semibold">${cell.dayNumber}</span>
